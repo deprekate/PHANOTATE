@@ -1,0 +1,8 @@
+Sequence 		tRNA 	Bounds	tRNA	Anti	Intron Bounds	Cove	Hit
+Name     	tRNA #	Begin	End  	Type	Codon	Begin	End	Score	Origin
+-------- 	------	---- 	------	----	-----	-----	----	------	------
+CELF22B7 	1	12619	12738	Leu	CAA	12657	12692	60.01	Bo
+CELF22B7 	2	19480	19561	Ser	AGA	0	0	80.44	Bo
+CELF22B7 	3	26367	26439	Phe	GAA	0	0	80.32	Bo
+CELF22B7 	4	26992	26920	Phe	GAA	0	0	80.32	Bo
+CELF22B7 	5	23765	23694	Pro	CGG	0	0	75.76	Bo

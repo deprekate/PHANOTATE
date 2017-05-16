@@ -1,0 +1,405 @@
+
+tRNAscan-SE - Release history
+=============================
+
+Version 0.90 (March 6, 1996)
+------------
+Initial beta release
+
+
+Version 0.91 (March 12, 1996)
+------------
+-MAJOR BUG: covels & coves executables not called correctly from
+program, will result in detection of NO tRNAs in default mode!
+-added better checking for all required executables before starting
+analysis
+-added "#include <stdlib.h>" to trnascan.c, DEC Alpha's were 
+complaining with use of unprototyped 'calloc' call
+-added 'make testrun' option to Makefile to allow user 
+to check to see if tRNAscan-SE is running properly
+
+
+Version 0.91a (March 13, 1996)
+-------------
+-two minor updates of Sean's old sqio library for SunOS 4.1 
+compatibility:
+   - fflush(NULL) fails in SunOS; replace with fflush(stderr)
+   - SEEK_SET is in unistd.h in SunOS
+
+
+Version 0.92 (March 14, 1996)
+------------
+-updated all sqio source files to squid-1.5g to avoid any other
+problems already fixed by Sean in current sqio release
+-updated Cove source files to work with updated verison of squid, new
+version of Cove is "2.4.2a"
+-added $PERLBIN variable in Makefile to allow installation on systems
+that don't call perl v.5 binary 'perl' (i.e. 'perl5' instead)
+-included source for 'reformat' and 'getseq' programs from Sean's sqio
+function library; not built automatically, but available for users who
+want to compile and use them
+-with new sqio version, don't need to specify any MDEFS in Makefile
+(ie. -DNORANDOM or -DGETOPTH) unless problems with compilation
+ 
+Version 0.92a (March 18, 1996)
+-------------
+-fixed SEEK_SET problem in interleaved.c by adding #include <unistd.h>
+(interleaved.c was a recent addition to squid library), needed for
+SunOS 4.x compilation
+
+Version 0.92b (April 4, 1996)
+-------------
+-added -X option to allow specification of Cove cutoff score for
+reporting tRNAs
+-fixed -u (use previous results file) option to allow using a regular
+tabular output file; this allows easy generation of ACeDB or secondary
+structure output files without having to re-run on entire sequence(s)
+-changed the default name for the secondary structure file from
+".allstruct" to ".ss" for simplicity
+
+Version 0.92c (April 10, 1996)
+-------------
+-at Christoph's suggestion, added more info to structure output file
+(-f option) to display relative & absolute location of anticodon
+-also, slightly changed rest of output format, the following is an
+example of the new format:
+
+CELF22B7.trna3 (26367-26439)    Length: 73 bp
+Type: Phe       Anticodon: GAA at 34-36 (26400-26402)   Score: 73.88
+         *    |    *    |    *    |    *    |    *    |    *    |    *    |  
+Seq: GCCTCGATAGCTCAGTTGGGAGAGCGTACGACTGAAGATCGTAAGGtCACCAGTTCGATCCTGGTTCGGGGCA
+Str: >>>>>>>..>>>>........<<<<.>>>>>.......<<<<<.....>>>>>.......<<<<<<<<<<<<.
+
+Version 0.93 (April 22, 1996)
+-------------
+-not released
+-Major changes, added my own C implementation of an algorithm that uses
+multistep weight matrix analysis detailed by Pavesi et al. (NAR 22:
+1247-1256, 1994), dubbed eufindtRNA since it searches for eukaryotic
+transcription signals
+
+-new "default" run mode for tRNAscan-SE uses tRNAscan 1.3 "strict"
+params, with eufindtRNA in "relaxed" mode
+-results in a 40-80 fold speed increase with BETTER sensitivity and
+equal selectivity as the previous default mode
+
+-many internal labels changed to reflect that two programs (eufindtRNA
+and tRNAscan) are being used as fast first-pass scanners
+
+Minor changes:
+-removed -r option (save raw tRNAscan output) since I've never used it
+and it was cluttering code
+-added -y option (show source of first-pass hit, "Eu" = eufindtRNA,
+"Ts" = tRNAscan, "Bo" = both) - prints after "Score" column in tabular
+output
+-added -F option to save false-positives produced by first-pass
+scanners that were later negg'ed by Cove; only for use in studying
+behavior of program, not of use to general users
+-added message "No tRNAs found." that prints to standard error if no
+tRNAs are found in sequence(s)
+-restructured -T, -C options to work with new option -E (use
+eufindtRNA)
+
+Version 0.93a (May 31, 1996)
+-------------
+-released to Kym at GSC
+-changed ACeDB output format, an example follows:
+
+Sequence        F02D10
+Subsequence     F02D10.t3 188 70
+
+Sequence        F02D10.t3
+Source          F02D10
+Source_Exons    1 38
+Source_Exons    74 119
+Brief_identification tRNA-Leu
+Transcript tRNA "CAA Leu L"
+Score tRNAscan-SE-0.93 57.23
+
+-new Ace format adopted by Cambridge and GSC
+
+-extended max length of tRNA to 200bp (roughly 125bp max intron
+length)
+-restructured available options printout
+
+-alterted EufindtRNA to find a prokaryotic selcys (already finds
+eukaryotic selcys tRNAs) based on a consensus sequence
+
+-added PSELC.cm and ESELC.cm covariance models (prokaryotic &
+eukaryotic selcys, respect.) to help Cove detect selenocysteine tRNAs
+and give correct secondary structures
+
+-changed -t option (save firstpass results) to -r option
+-new -t option used to set tRNAscan parameters (R=relaxed, S=strict)
+
+-added -P option, prokaryotic scan mode (loosens EufindtRNA params for
+finding prokaryotic tRNAs)
+
+-by default, now adds 7bp to both 5' and 3' ends of tRNA hits from
+firstpass scan -- gives Cove a better chance to define entire tRNA in
+case first-pass scanners slightly truncate
+-added -B option, allows adjusting # bp to pad first-pass hits; can
+use a value of zero to turn off bounds padding
+
+
+Version 0.94 (June 8, 1996)
+------------
+-tightened up error checking for correct exiting of called programs
+-now handles sequence sets with duplicate names correctly
+
+Version 0.95 (June 27, 1996)
+------------
+-announced to Sanger, GSC, LBL (Nomi), Christoph
+-updated all documentation reflecting incorporation of EufindtRNA
+into tRNAscan-SE
+
+
+Version 0.96 (September 1996)
+------------
+-fixed minor bug causing incorrect intron bounds printed when using
+tRNAscan alone (-T option)
+-fixed minor bug causing infinite loop if identical sequence names are
+used several times in the same input FASTA file
+-fixed intron prediction so only non-cannonical nucleotides appearing 
+_within_ anticodon loop are predicted as an intron (before, anything
+including anticodon loop _and_ after was being called as an intron
+
+-put in filter to detect tRNA-derived repetitive element pseudogenes
+(rat ID seqs, rodent B2 elements, type II mammalian ALU seqs) from
+real tRNAs
+-new filter: for tRNAs with <40 bit scores, if 
+  1) contribution to score from secondary structure < 5 bits, or 
+  2) contribution to score from primary (HMM-type) pattern < 10 bits
+
+-this filter effectively eliminates all but one Genbank seq (a rat ID
+seq, RATRSIDH) and three putative rat ID seqs found in dbEST 
+(R46943,R47014,R82886)
+
+-added option requested by GSC, -N outputs codons instead of
+anticodons with all tRNA identification output
+
+-slightly modified -F (save false positives) option to output entire
+false positive sequence, not just subsequence with score between 0 &
+20 bits
+
+Version 0.96a (October 10, 1996)
+--------------------------------
+-added option (-Z) to run in Cove-only mode on Maspar; uses special
+routine that runs covels on entire sequence set, then parses out tRNA
+info
+
+Version 1.0 (December 6, 1996)
+-------------------------------
+-first general release, all features as described in paper just
+submitted to Nucleic Acids Research (11/27/96)
+
+-updated to Cove source code to 2.4.4 (from 2.4.2a)
+
+-changed the way eufindtRNA handles ambiguous bases,
+now is consistent
+-used to randomly choose a base among ambig choices, but not
+giving consistent results (no surprise) for Sprinzl search
+-so, all non-ACGT bases now are counted as a single type
+of ambiguous base, and that base always has the best value of
+any of the four ACGT values for that position in the A box
+and B box score matrices
+-may slightly increase false positive rate, but not a concern for
+use with tRNAscan-SE
+
+-added option (-L) allows checking for very long tRNAs (>192bp)
+that contain group I, group II, or other long intervening seqs
+
+-modified pseudogene filter, changed requirement that pseudogene must
+have a total score "less than 40 bits" TO "less than 55 bits" 
+(catches more potential pseudogenes)
+
+
+Version 1.01 (February 5, 1997)
+-------------------------------
+-updated reference to paper (just accepted to Nucl. Acids Research)
+-slightly simplified stats file output to make less confusing
+-no functional changes to program
+
+Version 1.02 (February 18, 1997)
+-------------------------------
+-added -G option, search for orGanellar tRNAs (mito/chloro)
+-updated program manual & man page documentation
+
+Version 1.1 (June 9, 1997) - not released
+--------------------------
+-option -G (organellar tRNA search mode) changed to option -O
+(easier mnemonic)
+
+-split original tRNA covariance model (CM) into three different
+models, one for each domain ("TRNA2-euk.cm" for eukyarotes, 
+"TRNA2-prok.cm" for prokaryotes, "TRNA2-arch.cm" for archaea)
+
+
+-now, by default, eukaryotic-specific CM used
+    -P uses prokaryotic specific covariance model
+    -A uses archaeal model
+    -G uses original TRNA2.cm general model (tRNAs from all domains)
+
+
+-re-organized options in help message (-h option) & updated user
+manual
+
+-updated credits to reflect publication of tRNAscan-SE paper
+in Nucleic Acids Research 25: 955-964 (1997)
+
+
+Version 1.11 (November 5, 1997)
+-------------------------------
+
+-fixed minor bug that causes division by zero crash when -n or -s
+options are used and no sequences are found matching these patterns
+
+Version 1.12 (February 19, 1999)
+--------------------------------
+-minor fix: when -O (organellar search mode) selected, "Eukaryotic" was
+displayed -- changed so it now says "Organellar" 
+
+-minor fix: when both -H (show HMM/2'struct score breakdown) and -D
+(disable pseudogene checking) options selected, it _was_ enabling
+pseudogene checking;  now both work together as expected
+
+Version 1.13 (May 16, 2000)
+---------------------------
+-minor option added:  -i will use versions of pre-scanners (tRNAscan-1.4 
+and EufindtRNA) that have been compiled to not optimisitically call
+ambiguous nucleotides.  For unfinished sequeneces with many 'N's, this
+greatly speeds scanning since many fewer false positives are passed on to
+Cove.  Must run "make noambig" to produce these binaries 
+
+Version 1.20 (September 14, 2000)
+---------------------------------
+
+-MAJOR upgrade feature: The program no longer attempts to read in an
+entire sequence into memory at a time.  When scanning the human genome
+full chromosome sequences, it was taking >1GB of memory.  Now, the
+program only reads sequences in 1 Mbp chunks, and processes them
+identically otherwise.  The maximum memory now required to search
+sequences of any length should be < 15 MB.
+
+-Fixed minor bug in eufindtRNA (new version 1.1) that caused second of
+two consecutive tRNAs (within 40bp) to be missed if the second tRNA
+scored lower than the first.  Very few tRNAs are detected by
+eufindtRNA and not tRNAscan 1.4, so this bug probably affected only a
+couple tRNA detections for all completed genomes
+
+-The default Max tRNA length has been upped from 200 to 500 bp when
+using prescanners, and from 150 to 250 when using Cove only.  Also,
+the default max intron length for eufindtRNA was upped from 116 to
+200.  These increases will slow the program by about 30%, but will
+help identify archaeal and bacterial tRNAs with introns of length 200
+or less that were just barely being missed by the previous defaults.
+Scan time is very short for tRNAscan-SE, so a slight increase was
+deemed acceptable.  To reverse these changes in the defaults, use
+the parameter setting "-L=116".  
+
+-Fixed a minor bug when using the -L parameter that caused loss of
+tRNA detection when both pre-scanners were in use, and identified
+the same tRNA with differing A and B boxes.  
+
+-Eliminated old code for running on Maspar machines (unused for
+development since 1997)
+
+-Added more complete summary statistics to .stats files.  They now
+give breakdowns by isotype & anticodon, with counts for
+intron-containing tRNAs, pseudogenes, selenocysteine, and other
+non-standard tRNAs.
+
+-Slightly reformated output file (*.out) columns so that for
+large sequences, tab columns do not go out of alignment.  This
+slightly changes the white spaceing among column headers.
+
+
+Version 1.21 (October 5, 2000)
+------------------------------
+-Added automatic option that removes runs of 10 N's or 
+more from consideraton by pre-scanners; better solution
+thann -i option which disqualifies tRNAs with any N's
+at all.  Also better since this can be default behavior,
+users don't "need to know" about using the -i option,
+whether they have many N's or not.  
+
+-Removed -i option (see above change)
+
+-fixed bug in use of "-O" (organellar scan mode) option
+Should work correctly now.  (Fixed bug: thought -O should
+take a parameter, so the next parameter on the line was
+sucked up, causing unintended run specifications)
+
+-Changed "Prokaryotic mode" to "Bacterial Mode", which is
+more accurate (archaeal sequences were _not_ used to train
+the old prokaryotic model).  No functional changes to any
+of the models or run parameters.  
+
+-Added "-B" option for Bacterial scan mode.  Same as old
+"-P" option, but better named now.  "-P" still works
+same as before to prevent breaking of programs that
+use tRNAscan-SE  (i.e.  -B equals -P) 
+
+-Switched old "-B" option (nucleotides of padding from
+pre-scanner hits to Cove scans) to "-z".  Same function.
+I doubt if more than 1 other person in the world uses
+this option for tweaking the program, so I'm not worried
+about breaking other people's pipeline analysis scripts.
+
+-When using the general tRNA covariance model (-G option),
+it now says: "General".
+
+Version 1.22 (Not released)
+---------------------------
+-minor: Added tRNAscan-SE version number to .stats file output
+
+Version 1.23 (Fixed April 24, 2001, not released until April 2002)
+------------
+-minor: Was not handling 'X' characters gracefully in input
+sequences.  Even though not IUPAC, the program now replaces
+X's with N's so it doesn't throw errors.
+
+
+Version 1.3 (March 2011)
+------------
+-Removed option "P" (prokaryotic scan mode) which was already depricated;  
+Use -B (bacterial) or -A (archaeal) scan modes instead
+
+-Added long option names for all supported options
+
+-Added "--newscan" option for using Infernal 1.0 instead of
+COVE as second-pass scanner
+
+-Added "-i" or "--infernal" option for using Infernal 1.0 only search mode
+
+-Added "--ncintron" option to search for noncanonical introns. This option
+is only available for Archaeal scan mode.
+
+-Added "--frag <file>" option to search for tRNA gene fragments that may
+form split tRNAs. Results are saved as tab-delimited output file
+specified with option. This option is only available for Archaeal scan mode.
+
+-Added output support of multiple introns in an archaeal tRNA gene. Start and
+end positions of the introns are delimited by comma in the corresponding fields
+in the output file. Start and end positions of all the introns are also listed
+in the tRNA secondary structure output file.
+
+-Added "PRE" output line in tRNA secondary structure output file for those
+archaeal tRNA genes that are predicted to have noncanonical introns. Regions
+enclosed in [] are predicted intron sequences.
+
+-Added an extra column at the end of output file for Archaeal scan mode to
+display the number of predicted canonical (CI) and noncanonical (NCI) introns
+for each predicted tRNA gene.
+
+-Methods in this version of tRNAscan-SE have been rearranged into multiple
+Perl modules under package tRNAscanSE. The file path has to be added in
+PERL5LIB environment variable for execution. Corresponding changes in the
+Makefile have been included.
+
+Version 1.3.1 (January 2012)
+------------
+-Change getline() to GetLine() in sqio.c to eliminate error when compiling
+with gcc v4.2 or above
+
+-Fix most of the warnings when compiling in 64-bit environment

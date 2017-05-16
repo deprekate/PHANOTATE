@@ -1,0 +1,105 @@
+
+Demonstrations of the covariance model programs
+-----------------------------------------------
+
+As an introduction to how the software works, this file contains
+instructions on how to reproduce the results in our paper.  (Note
+that this version of the code is newer, somewhat less buggy, and
+faster than the version used for our original experiments. There may
+be minor differences between the results we report in our paper and
+the results you get from these demos.)
+
+For more details, refer to S.R. Eddy and R. Durbin, "RNA Sequence
+Analysis Using Covariance Models", NAR 22:2079-2088, 1994.
+
+The directory Demos/ contains the data files:
+
+   TRNA2.cm        - A very good tRNA model
+   7SL-euk.cm      - A model of 7SL signal recognition particle RNA
+   7SL-euk.fa      - 37 eukaryotic 7SL RNAs (includes some fragments)	
+   trna1415.slx    - Steinberg/Sprinzl trusted tRNA alignment
+   sim65.slx       - alignment of 100 dissimilar tRNAs
+   sim100.slx      - alignment of 100 randomly chosen tRNAs
+   test100.fa      - 100 unaligned, randomly chosen independent test tRNAs
+   sim65.fa        - unaligned SIM65 sequences
+   sim100.fa       - unaligned SIM100 sequences
+   fig5.slx        - Trusted alignment of 5 tRNAs, from our figure 5
+   fig5.fa         - unaligned tRNA sequences of fig5.slx
+   yeast-phe.fa    - S. cerevisiae tRNA-Phe sequence	
+   K11H3frag.fa    - fragment of C. elegans cosmid K11H3, which contains 2 tRNA genes
+
+## Constructing a model from trusted alignments:
+
+> covet -a sim100.slx A100.cm sim100.fa
+> covet -a sim65.slx A65.cm sim65.fa
+     
+  Produces models A100 and A65. Uses trusted alignments (sim100.slx,
+  sim65.slx) to construct the initial models; then uses sim100.fa or
+  sim65.fa as training sequences.
+  Takes about fifteen minutes per model on an R4000 Indigo.
+ 
+## Constructing a model from unaligned sequences:
+
+> covet U100.cm sim100.fa
+> covet U65.cm sim65.fa
+
+  Produces models U100 and U65 from unaligned training sequences in sim100.fa
+  and sim65.fa.
+  Takes about an hour per model on an R4000 Indigo.
+
+## Multiple RNA sequence alignment using a trained model:
+
+> covea A100.cm fig5.fa
+> covea U100.cm fig5.fa
+
+  Produces a multiple sequence alignment of the 5 sequences in fig5.fa
+  and prints it to the screen. Compare to the trusted alignment
+  (fig5.slx) or our preprint's Figure 5.
+  Takes about ten seconds.
+   
+
+## Scoring example sequences using a trained model:
+
+> coves A100.cm fig5.fa
+
+  Calculates and prints alignment scores (in bits) for the 5 sequences in
+  fig5.fa.
+  Takes about ten seconds.
+
+## Structure prediction of individual sequences using a trained model:
+ 
+> coves -s A100.cm yeast-phe.fa
+> coves -m A100.cm yeast-phe.fa
+
+  Aligns the model A100.cm to yeast tRNA-Phe, and prints out the alignment
+  score. The -s option to coves prints out a secondary structure representation
+  for the sequence as well. This representation uses ">" and "<" characters
+  to represent pairwise assignments. The -m option to coves produces a
+  "mountain" representation of the structure. Both of these representations
+  are described in a paper by Danielle Konings (Konings and Hogeweg,
+  J. Mol. Biol. 207:597-614, 1989).  Covariance models typically
+  overpredict pairs; the predicted pairs are a superset of the
+  secondary structure pairings. [One of the major weaknesses in the package at the 
+  moment is a lack of graphical secondary structure display and a lack of 
+  automatic classification of predicted pairs as secondary structure vs. tertiary 
+  structure or overprediction.]
+  Takes about ten seconds.	
+	
+## Searching a database for new tRNAs:
+
+> covels -c A100.cm K11H3frag.fa
+
+  Searches a 500 bp fragment of the C. elegans cosmid K11H3 for tRNAs,
+  on both strands (the -c option asks for both strands to be searched).
+  This fragment contains two predicted tRNA genes.
+  Takes about two minutes.
+
+> covels -c -w 150 TRNA2.cm K11H3frag.fa
+
+  Same as above, except using a model trained on 1315 different tRNA
+  sequences. This model is known to recognize all known cytoplasmic 
+  eukaryotic tRNAs with scores > 20 bits. The -w option allows tRNAs
+  up to 150 nt in length. Using covels with this model is the most 
+  sensitive means I know of for detecting tRNAs in genomic sequence. 
+
+

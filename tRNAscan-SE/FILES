@@ -1,0 +1,169 @@
+List of files in the package.
+----------------------------
+
+Manual.ps    -- decription of program, run options & demo examples
+                (postscript format)
+MANUAL       -- decription of program, run options & demo examples
+                (text format)
+INSTALL      -- instructions for installing the programs
+COPYING      -- copyright notice, and information on distribution policy
+FILES        -- overview of what files are (this file)
+GNULICENSE   -- Gnu Public License, version 2 (see COPYING)
+Release.history -- Log of changes/fixes/additions in various releases 
+          
+Makefile         -- Customize local installation
+checkversion.pl  -- Makes sure you are using Perl version 5.0 or greater 
+                    when 'make'ing tRNAscan-SE
+instman.pl       -- PERL script used for man page installation
+tRNAscan-SE.man  -- Manual file for tRNAscan-SE
+
+Files created after a complete 'make':
+
+tRNAscan-SE          ready-to-run PERL script, user runs this program to
+                     search for tRNAs
+covels-SE            copy of 'covels' program from Cove package, 
+                     renamed with '-SE' suffix to avoid overwriting
+                     previous installation of Cove package
+coves-SE             copy of 'coves' program from Cove package, 
+                     renamed with '-SE' suffix to avoid overwriting
+                     previous installation of Cove package
+trnascan-1.4         optimized, debugged version of tRNAscan 1.3 with
+                     a couple new options for use with tRNAscan-SE             
+eufindtRNA           new implementation of tRNA-finding algorithm 
+                     previously described by Pavesi et al.;
+                     does step-wise identification of B box, then A
+                     box, then poly-T termination signal, scored with
+                     newly derived log odds score matrix; new options
+                     included for use with tRNAscan-SE
+
+Source / data files for tRNAscan-SE:
+
+tRNAscan-SE.src      PERL script source, must be run thru a 'make' to
+                     do variable substitutions and create executable
+                     file 'tRNAscan-SE'
+tRNAscanSE/*.cm      PERL modules required for executing tRNAscan-SE
+
+gcode.cilnuc	     Alternate genetic codes for Ciliates,
+                      Dasycladacean, & Hexamita nuclear tRNAs 
+gcode.echdmito	     "  "  "  "    Echinoderm mitochondrial tRNAs
+gcode.invmito        "  "  "  "    Invertibrate mitochondrial tRNAs
+gcode.othmito        "  "  "  "    Mold, Protozoans, & Coelenterate 
+                      mitochondrial tRNAs
+gcode.vertmito       "  "  "  "    Vertibrate mitochondrial tRNAs
+gcode.ystmito        "  "  "  "    Yeast mitochondrial tRNAs
+
+sstofa.pl            PERL script utility program that converts a
+		     tRNA secondary-structure file (-f option)
+		     into a standard FASTA file; not required
+		     for tRNAscan-SE operation, supplied as 
+		     an external utility to user
+
+Source / data files for tRNAscan program:
+
+trnascan.c	     source for tRNAscan v.1.4 
+Dsignal		     D arm consensus matrix scoring file 
+TPCsignal            TPC arm consensus matrix scoring file
+
+
+Source files for eufindtRNA program:
+
+eufind_main.c        main source file
+pavesi.c             tRNA feature search functions
+eufind_const.h       constants & data structures
+
+
+Source / data files for Cove/Infernal package:
+
+TRNA2.cm             default covariance model used by Cove to detect tRNAs
+                     (built from hand-edited alignment of over 
+                     1415 tRNAs, introns included, by S. Eddy)
+TRNA2ns.cm           primary-structure only (HMM-like) covariance model used by
+		     Cove to separate primary sequence scores from
+		     secondary structure scores (see Methods);
+                     this model uses the same tRNA alignment as
+		     TRNA2.cm, but excludes all secondary structure
+		     information
+TRNA2-*.cm           domain-specific covariance model used by Cove to detect tRNAs
+PSELC.cm	     covariance model used to detect prokaryotic
+                     selenocysteine tRNAs (also gives more accurate 
+		     secondary structure predictions of selcys tRNAs)
+                     trained on 5 known prok selcys tRNAs
+ESELC.cm             covariance model used to detect eukaryotic
+	             selenocysteine tRNAs (also gives more accurate 
+		     secondary structure predictions of selcys tRNAs)
+		     trained on 7 known euk selcys tRNAs
+*inf-*.cm            covariance models used by Infernal to detect tRNAs
+Archaea-BHB-noncan.cm  covariance model used by Infernal to detect
+                       noncanonical tRNA introns in archaea
+
+align_main.c         main() for covea,  multiple alignment
+build_main.c         main() for coveb,  model construction
+emit_main.c          main() for covee,  emit sequences from a model
+scan_main.c          main() for covels, database searching
+score_main.c         main() for coves,  scoring sequences and predicting their structure
+structcheck_main.c   main() for an auxiliary program that checks 
+		     structure-annotated alignments
+train_main.c         main() for covet,  model training
+
+dbviterbi.c          database scanning version of the alignment algorithm
+smallviterbi.c       small memory version of the alignment algorithm (EXPERIMENTAL)
+viterbi.c            alignment algorithm
+
+align.c              produce output alignments from tracebacks
+debug.c              miscellaneous debugging output routines
+emit.c               emit sequences from a model
+fastmodelmaker.c     N^2 mem/N^3 time, approx. model construction from alignment
+konings.c            secondary structure "strings"
+maxmodelmaker.c      N^2 mem/N^4 time, max. likelihood model construction from alignment
+misc.c               miscellaneous functions
+model.c              alloc, init, free'ing of a CM
+prior.c              default prior, i/o of prior from files
+probify.c            convert counts to probabilities
+save.c               i/o of models
+scorestack.c         module for 
+structs.c            implementation of data structures: trees & stacks
+trace.c              trace tree & stack data structures
+
+
+Files borrowed from Sean Eddy's sequence function library (v.1.5g & j):
+
+alignio.c            i/o of aligned sequence files
+sqerror.c            Die(), Choke(), Warn() error functions
+sqio.c               Don Gilbert's readseq, i/o of sequences
+getopt.c             More portable version of getopt()
+iupac.c              values of global variables
+msf.c                i/o of GCG MSF alignment format
+revcomp.c            reverse complement a sequence
+selex.c              i/o of my SELEX alignment format
+sre_ctype.c          portability of ctype.h functions
+sre_string.c         some miscellaneous extra string functions
+types.c              some miscellaneous type-checking functions for user input
+gnuregex.c           regular expression function library
+interleaved.c        i/o of interleaved format multiple alignments 
+reformat_main.c      source for useful sequence format conversion program
+revcomp_main.c       source for program to take the reverse complement of
+		     a sequence
+seqstat_main.c       source for a program displaying information about
+		     a sequence file
+shuffle_main.c	     source for a program that shuffles input sequence
+		     randomly, useful for running Monte Carlo simulations
+
+Files in /Demo for running demo examples:
+
+/Demo/C28G1.fa,      C. elegans cosmids
+      F22B7.fa, 
+      F59C12.fa
+
+/Demo/Sprz-sub.fa    1014 sequence subset of Sprinzl tRNA 
+                      (contains animal cytoplasmic + eubacterial tRNAs)
+/Demo/DQ6060.fa      Sprinzl Tetrahymena thermophila Gln tRNA
+
+Files in /Cove (additional files in Cove package not needed for 
+                tRNAscan-SE operation):
+
+/Cove/Guide.tex      User's Guide for Cove package, in TeX format
+/Cove/DEMO           Running demo's of various programs in entire
+                      Cove package
+/Cove/Demos/*        Files needed for running Cove package demos
+/Cove/COPYING        copyright notice for Cove package, and
+                      information on distribution policy 

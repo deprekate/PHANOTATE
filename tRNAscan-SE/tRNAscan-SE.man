@@ -1,0 +1,504 @@
+.TH "tRNAscan-SE" 1 "November 1997" "tRNAscan-SE 1.1"
+
+.SH NAME
+.TP
+.I tRNAscan-SE
+
+- a program for improved detection of transfer RNA genes 
+in genomic sequence
+.SH SYNOPSIS
+.B tRNAscan-SE [options] seqfile(s)
+.SH DESCRIPTION
+.I tRNAscan-SE
+searches for transfer RNAs in genomic sequence
+.I seqfile(s)
+using three separate methods to achieve a combination of speed,
+sensitivity, and selectivity not available with each program
+individually.
+
+.PP
+tRNAscan-SE was written in the PERL (version 5.0) script language.
+Input consists of DNA or RNA sequences in FASTA format.  tRNA
+predictions are output in standard tabular, ACeDB-compatible, or an
+extended format including tRNA secondary structure information.
+tRNAscan-SE does no tRNA detection itself, but instead combines the
+strengths of three independent tRNA prediction programs by negotiating
+the flow of information among them, performing a limited
+amount of post-processing, and outputting the result.
+.PP
+tRNAscan-SE combines the specificity of the Cove probabilistic RNA
+prediction package (Eddy & Durbin, 1994) with the speed and
+sensitivity of tRNAscan 1.3 (Fichant & Burks, 1991) plus an
+implementation of an algorithm described by Pavesi and colleagues
+(1994) which searches for eukaryotic pol III tRNA promoters (our
+implementation referred to as EufindtRNA).  tRNAscan and EufindtRNA
+are used as first-pass prefilters to identify "candidate" tRNA regions
+of the sequence.  These subsequences are then passed to Cove for
+further analysis, and output if Cove confirms the initial tRNA
+prediction.  In this way, tRNAscan-SE attains the best of both worlds:
+(1) a false positive rate equally low to using Cove analysis, (2) the
+combined sensitivities of tRNAscan and EufindtRNA (detection of 99%
+of true tRNAs), and (3) search speed 1,000 to 3,000 times faster than
+Cove analysis and 30 to 90 times faster than the original tRNAscan 1.3
+(tRNAscan-SE uses both a code-optimized version of tRNAscan 1.3 which
+gives a 650-fold increase in speed, and a fast C implementation of the
+Pavesi et al. algorithm).
+.PP
+tRNAscan-SE was designed to make rapid, sensitive searches of genomic
+sequence feasible using the selectivity of the Cove analysis package.
+Search sensitivity was optimized with eukaryote cytoplasmic &
+eubacterial sequences, but it may be applied more broadly with a
+slight reduction in sensitivity.
+.PP
+In the default tabular output format, each new tRNA in a sequence is
+consecutively numbered in the 'tRNA #' column.  'tRNA Bounds' specify
+the starting (5') and ending (3') nucleotide bounds for the tRNA.
+tRNAs found on the reverse (lower) strand are indicated by having the
+Begin (5') bound greater than the End (3') bound.
+.PP
+The 'tRNA Type' is the predicted amino acid charged to the tRNA
+molecule based on the predicted anticodon (written 5'->3') displayed
+in the next column.   tRNAs that fit criteria for potential pseudogenes
+(poor primary or secondary structure), will be
+marked with "Pseudo" in the 'tRNA Type' column (pseudogene checking 
+is further discussed in the Methods section of the program manual). 
+If there is a predicted intron in the tRNA, the
+next two columns indicate the nucleotide bounds.  If there is no
+predicted intron, both of these columns contain zero.  
+.PP
+The final column is the Cove score for the tRNA in bits of
+information.  Specifically, it is a log-odds score: the log of the
+ratio of the probability of the sequence given the tRNA covariance
+model used (developed from hand-alignment of 1415 tRNAs), and the
+probability of the sequence given a simple random sequence model.
+tRNAscan-SE counts any sequence that attains a score of 20.0 bits or
+larger as a tRNA (based on empirical studies conducted by Eddy &
+Durbin in ref #2).
+.PP
+
+.SH OPTIONS
+
+.TP
+.B -h
+Prints entire list of program options, each with a brief, one-line
+description.
+
+.TP
+.B -P
+This option selects the prokaryotic covariace model for tRNA analysis,
+and loosens the search parameters for EufindtRNA to improve detection
+of prokaryotic tRNAs.  Use of this mode with prokaryotic sequences
+will also improve bounds prediction of the 3' end (the terminal CAA
+triplet).
+
+.TP
+.B -A
+This option selects an archaeal-specific covariance model for tRNA
+analysis, as well as slightly loosening the EufindtRNA search
+cutoffs.
+
+.TP
+.B -O
+This parameter bypasses the fast first-pass scanners that are poor at
+detecting organellar tRNAs and runs Cove analysis only.  Since true
+organellar tRNAs have been found to have Cove scores between 15 and 20
+bits, the search cutoff is lowered from 20 to 15 bits.  Also,
+pseudogene checking is disabled since it is only applicable to
+eukaryotic cytoplasmic tRNA pseudogenes.  Since Cove-only mode is
+used, searches will be very slow (see -C option below) relative to the
+default mode.
+
+.TP
+.B -G
+This option selects the general tRNA covariance model that was trained
+on tRNAs from all three phylogenetic domains (archaea, bacteria, &
+eukarya).  This mode can be used when analyzing a mixed collection of
+sequences from more than one phylogenetic domain, with only slight
+loss of sensitivity and selectivity.  The original publication
+describing this program and tRNAscan-SE version 1.0 used this general
+tRNA model exclusively.  If you wish to compare scores to those found
+in the paper or scans using v1.0, use this option.  Use of this option
+is compatible with all other search mode options described in this
+section.
+
+.TP
+.B -C
+Directs tRNAscan-SE to analyze sequences using Cove analysis only.
+This option allows a slightly more sensitive search than the default
+tRNAscan + EufindtRNA -> Cove mode, but is much slower (by approx. 250
+to 3,000 fold).  Output format and other program defaults are
+otherwise identical to the normal analysis.
+
+.TP
+.B -H
+This option displays the breakdown of the two components of the
+covariance model bit score.  Since tRNA pseudogenes often have one
+very low component (good secondary structure but poor primary sequence
+similarity to the tRNA model, or vice versa), this information may be
+useful in deciding whether a low-scoring tRNA is likely to be a
+pseudogene.  The heuristic pseudogene detection filter uses this
+information to flag possible pseudogenes -- use this option to see why
+a hit is marked as a possible pseudogene.  The user may wish to
+examine score breakdowns from known tRNAs in the organism of interest 
+to get a frame of reference.
+
+.TP
+.B -D
+Manually disable checking tRNAs for poor primary or secondary
+structure scores often indicative of eukaryotic pseudogenes.  This
+will slightly speed the program & may be necessary for non-eukaryotic
+sequences that are flagged as possible pseudogenes but are known to be
+functional tRNAs.
+
+.TP
+.B -o <file>
+Output final results to <file>.
+.TP
+.B -f <file>
+Save final results and Cove tRNA secondary structure predictions to
+<file>.  This output format makes visual inspection of individual tRNA
+predictions easier since the tRNA sequence is displayed along with the
+predicted tRNA base pairings.
+
+.TP
+.B -a 
+Output final results in ACeDB format instead of the default tabular
+format.
+
+.TP
+.B -m <file>
+Save statistics summary for run.  This option directs tRNAscan-SE to
+write a brief summary to <file> which contains the run options
+selected as well as statistics on the number of tRNAs detected at each
+phase of the search, search speed, and other bits of information.
+See Manual documentation for explanation of each statistic.
+
+.TP
+.B -d
+Display program progress.  Messages indicating which phase of the
+tRNA search are printed to standard output. If final results are also
+being sent to standard output, some of these messages will be
+suppressed so as to not interrupt display of the results.
+
+.TP
+.B -l <file>
+Save log of program progress in <file>.  Identical to -d option, but
+sends message to <file> instead of standard output.  Note: the -d
+option overrides the -l option if both are specified on the same
+command line.
+.TP
+.B -q
+Quiet mode: the credits & run option selections normally printed to
+standard error at the beginning of each run are suppressed.
+.TP
+.B -b
+Use brief output format.  This eliminates column headers that appear
+by default when writing results in tabular output format.  Useful if
+results are to be parsed or piped to another program.
+
+.TP
+.B -N
+This option causes tRNAscan-SE to output a tRNA's corresponding codon
+in place of its anticodon.
+
+.TP
+.B -(Option)#
+The '#' symbol may be used as shorthand to specify "default" file
+names for output files.  The default file names are constructed by
+using the input sequence file name, followed by an extension
+specifying the output file type <seqfile.ext> where '.ext' is:
+
+.DS
+Extension   Option    Description
+.br
+---------   ------    -----------
+ .out        -o       final results
+ .stats      -m       summary statistics file 
+ .log        -l       run progress file  
+ .ss         -f       secondary structures save file  
+ .fpass.out  -r       formatted, tabular output 
+                      from first-pass scans
+ .fpos       -F       FASTA file of tRNAs identified in
+			first-pass scans that were found to be
+			false positives by Cove analysis
+
+
+Notes: 
+
+1) If the input sequence file name has the extensions '\.fa' or '\.seq',
+these extensions will be removed before using the filename as
+a prefix for default file names.  (example -- input file name
+.I Mygene.seq
+will have the output file name 
+.I Mygene.out 
+if the '-o#' option is used).  
+
+2) If more than one sequence file is specified on the command line,
+the "default" output file prefix will be the name of the FIRST
+sequence file on the command line.  Use the -p option
+to change this default name to something more appropriate when
+using more than one sequence file on the command line.
+.DE
+
+.TP
+.B -p <label>
+Use <label> prefix as the default output file prefix when using '#'
+for file name specification.  <label> is used in place of the input
+sequence file name.
+
+.TP
+.B -y
+This option displays which of the first-pass scanners detected
+the tRNA being output.  "Ts", "Eu", or "Bo" will appear in the last
+column of Tabular output, indicating that either tRNAscan 1.4,
+EufindtRNA, or both scanners detected the tRNA, respectively.
+
+.TP
+.B -X <score>
+Set Cove cutoff score for reporting tRNAs (default=20).  This option
+allows the user to specify a different Cove score threshold for
+reporting tRNAs.  It is not recommended that novice users change this
+cutoff, as a lower cutoff score will increase the number of
+pseudogenes and other false positives found by tRNAscan-SE (especially
+when used with the "Cove only" scan mode).  Conversely, a higher
+cutoff than 20.0 bits will likely cause true tRNAs to be missed by
+tRNAscan (numerous "real" tRNAs have been found just above the 20.0
+cutoff).  Knowledgable users may wish to experiment with this
+parameter to find very unusual tRNAs or pseudogenes beyond the normal
+range of detection with the preceding caveats in mind.
+
+.TP
+.B  -L <length>
+Set max length of tRNA intron+variable region (default=116bp).
+The default maximum tRNA length for tRNAscan-SE is 192 bp, but this
+limit can be increased with this option to allow searches with no
+practical limit on tRNA length.  In the first phase of tRNAscan-SE,
+EufindtRNA searches for A and B boxes of <length> maximum distance
+apart, and passes only the 5' and 3' tRNA ends to covariance model
+analysis for confirmation (removing the bulk of long intervening
+sequences).  tRNAs containing group I and II introns have been
+detected by setting this parameter to over 800 bp.  Caution: group I
+or II introns in tRNAs tend to occur in positions other than the
+canonical position of protein-spliced introns, so tRNAscan-SE
+mispredicts the intron bounds and anticodon sequence for these cases.
+tRNA bound predictions, however, have been found to be reliable in
+these same tRNAs.
+
+.TP
+.B -I <score>
+This score cutoff affects the sensitivity of the first-pass scanner
+EufindtRNA.  This parameter should not need to be adjusted from its
+default values (variable depending on search mode), but is included
+for users who are familiar with the Pavesi et al. (1994) paper and
+wish to set it manually.  See Lowe & Eddy (1997) for details on
+parameter values used by tRNAscan-SE depending on the search mode.
+
+.TP
+.B -B <number>
+By default, tRNAscan-SE adds 7 nucleotides to both ends of tRNA
+predictions when first-pass tRNA predictions are passed to covariance
+model (CM) analysis.  CM analysis generally trims these bounds back
+down, but on occassion, allows prediction of an otherwise truncated
+first-pass tRNA prediction.
+
+.TP
+.B -g <file>
+Use exceptions to "universal" genetic code specified in <file>.  By
+default, tRNAscan-SE uses a standard universal codon -> amino acid
+translation table that is specified at the end of the tRNAscan-SE.src
+source file.  This option allows the user to specify exceptions to the
+default translation table.  The user may use any one of several
+alternate translation code files included in this package (see files
+'gcode.*'), or create a new alternate translation file.  See Manual
+documentation for specification of file format, or refer to included
+examples files.  
+.sp 1
+Note: this option does not have any effect when using
+the -T or -E options -- you must be running in default
+or Cove only analysis mode.
+
+.TP
+.B -c <file>
+For users who have developed their own tRNA covariance models using
+the Cove program "coveb" (see Cove documentation), this parameter
+allows substitution for the default tRNA covariance models.  May be
+useful for extending Cove-only mode detection of particularly strange
+tRNA species such as mitochondrial tRNAs.
+
+.TP
+.B -Q
+By default, if an output result file to be written to already exists,
+the user is prompted whether the file should be over-written or
+appended to.  Using this options forces overwriting of pre-existing
+files without an interactive prompt.  This option may be handy for
+batch-processing and running tRNAscan-SE in the background.
+
+.TP
+.B -n <EXPR>
+Search only sequences with names matching <EXPR> string. 
+<EXPR> may contain * or ? wildcard characters, but the user 
+should remember to enclose these expressions in single quotes
+to avoid shell expansion.  Only those sequences with names (first
+non-white space word after ">" symbol on FASTA name/description line)
+matching <EXPR> are analyzed for tRNAs.
+.TP
+.B -s <EXPR>
+Start search at first sequence with name matching <EXPR> string and
+continue to end of input sequence file(s).  This may be
+useful for re-starting crashed/aborted runs at the point where the
+previous run stopped.  (If same names for output file(s) are used,
+program will ask if files should be over-written or appended to --
+choose append and run will successfully be restarted where it left
+off).
+
+.TP
+.B -T
+Directs tRNAscan-SE to use only tRNAscan to analyze sequences.  This
+mode will default to using "strict" parameters with tRNAscan analysis
+(similar to tRNAscan version 1.3 operation).  This mode of operation
+is faster (3-5 times faster than default mode analysis), but will
+result in approximately 0.2 to 0.6 false positive tRNAs per Mbp,
+decreased sensitivity, and less reliable prediction of anticodons,
+tRNA isotype, and introns.
+
+.TP
+.B -t <mode>
+Explicitly set tRNAscan params, where <mode> = R or S (R=relaxed,
+S=strict tRNAscan v1.3 params).  This option allows selection of
+strict or relaxed search parameters for tRNAscan analysis.  By
+default, "strict" parameters are used.  Relaxed parameters may give
+very slightly increased search sensitivity, but increase search time
+by 20-40 fold.
+
+.TP
+.B -E
+Run EufindtRNA alone to search for tRNAs.  Since Cove is not being
+used as a secondary filter to remove false positives, this run mode
+defaults to "Normal" parameters which more closely approximates the
+sensitivity and selectivity of the original algorithm describe by
+Pavesi and colleagues (see the next option, -e for a description of
+the various run modes).
+
+.TP
+.B -e <mode>
+Explicitly set EufindtRNA params, where <mode>= R, N, or S (relaxed,
+normal, or strict).  The "relaxed" mode is used for EufindtRNA
+when using tRNAscan-SE in default mode.  With relaxed parameters,
+tRNAs that lack pol III poly-T terminators are not penalized,
+increasing search sensitivity, but decreasing selectivity.  When Cove
+analysis is being used as a secondary filter for false positives (as
+in tRNAscan-SE's default mode), overall selectivity is not decreased.
+
+Using "normal" parameters with EufindtRNA does incorporate a log odds
+score for the distance between the B box and the first poly-T
+terminator, but does not disqualify tRNAs that do not have a
+terminator signal within 60 nucleotides.  This mode is used by default
+when Cove analysis is not being used as a secondary false positive
+filter.
+
+Using "strict" parameters with EufindtRNA also incorporates a log odds
+score for the distance between the B box and the first poly-T
+terminator, but _rejects_ tRNAs that do not have such a signal within
+60 nucleotides of the end of the B box.  This mode most closely
+approximates the originally published search algorithm (3);
+sensitivity is reduced relative to using "relaxed" and "normal" modes,
+but selectivity is increased which is important if no secondary
+filter, such as Cove analysis, is being used to remove false
+positives.  This mode will miss most prokaryotic tRNAs since the
+poly-T terminator signal is a feature specific to eukaryotic tRNAs
+genes (always use "relaxed" mode for scanning prokaryotic sequences
+for tRNAs).
+
+
+.TP
+.B -r <file>
+Save tabular, formatted output results from tRNAscan and/or
+EufindtRNA first pass scans in <file>.  The format is similar to the
+final tabular output format, except no Cove score is available at this
+point in the search (if EufindtRNA has detected the tRNA, the negative
+log likelihood score is given).  Also, the sequence ID number and
+source sequence length appear in the columns where intron bounds are
+shown in final output.  This option may be useful for examining false
+positive tRNAs predicted by first-pass scans that have been filtered
+out by Cove analysis. 
+
+.TP
+.B -u <file>
+This option allows the user to re-generate results from regions
+identified to have tRNAs by a previous tRNAscan-SE run.  Either a
+regular tabular result file, or output saved with the -r option may be
+used as the specified <file>.  This option is particularly useful for
+generating either secondary structure output (-f option) or ACeDB
+output (-a option) without having to re-scan entire sequences.
+Alternatively, if the -r option is used to generate the previous
+results file, tRNAscan-SE will pick up at the stage of
+Cove-confirmation of tRNAs and output final tRNA predicitons as with a
+normal run.
+
+.sp 1
+Note: the -n and -s options will not work in conjunction with this
+option.
+
+.TP
+.B -F <file>
+Save first-pass candidate tRNAs in <file> that were then found to be
+false positives by Cove analysis.  This option saves candidate tRNAs
+found by either tRNAscan and/or EufindtRNA that were then rejected by
+Cove analysis as being false positives.  tRNAs are saved in the FASTA
+sequence format.
+
+.TP
+.B -M <file>
+This option may be used when scanning a collection of known tRNA
+sequences to identify possible false negatives (incorreclty missed by
+tRNAscan-SE) or sequences incorrectly annotated as tRNAs (correctly
+passed over by tRNAscan-SE).  Examination of primary & secondary
+structure covariance model scores (-H option), and visual inspection
+of secondary structures (use -F option) may be helpful resolving
+identification conflicts.
+
+.SH SEE ALSO
+.PP
+User Manual and tutorial: Manual.ps (postscript), MANUAL (text)
+
+.SH BUGS
+No major bugs known.
+
+.SH NOTES
+
+This software and documentation is Copyright (C) 1996, Todd M.J. Lowe
+& Sean R. Eddy.  It is freely distributable under terms of the GNU
+General Public License. See COPYING, in the source code distribution,
+for more details, or contact me.
+
+.nf
+Todd Lowe
+Dept. of Genetics, Washington Univ. School of Medicine
+660 S. Euclid Box 8232
+St Louis, MO 63110 USA
+Phone: 1-314-362-7667
+FAX  : 1-314-362-2985
+Email: lowe@genetics.wustl.edu
+.fi
+
+.SH REFERENCES
+.PP
+1. Fichant, G.A. and Burks, C. (1991) "Identifying potential tRNA
+genes in genomic DNA sequences", J. Mol. Biol., 220, 659-671.
+.PP
+2. Eddy, S.R. and Durbin, R. (1994) "RNA sequence analysis using
+covariance models", Nucl. Acids Res., 22, 2079-2088.
+.PP 
+3. Pavesi, A., Conterio, F., Bolchi, A., Dieci, G., Ottonello,
+S. (1994) "Identification of new eukaryotic tRNA genes in genomic DNA
+databases by a multistep weight matrix analysis of transcriptional
+control regions", Nucl. Acids Res., 22, 1247-1256.
+.PP
+4. Lowe, T.M. & Eddy, S.R. (1997) "tRNAscan-SE: A program for
+improved detection of transfer RNA genes in genomic sequence",
+Nucl. Acids Res., 25, 955-964.
+
+
+
+
+

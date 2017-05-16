@@ -1,0 +1,206 @@
+\documentstyle[11pt]{article}
+
+\title{User's Guide for COVE -- covariance models of RNA sequence
+families }
+\author{Sean Eddy\\MRC Laboratory of Molecular Biology\\Cambridge UK\\sre@mrc-lmb.cam.ac.uk}
+\date {2 September 1993}
+
+\begin {document}
+
+\maketitle
+
+\section {Overview}
+
+Covariance models (CM's) are adaptive statistical models of the the
+secondary structure and primary sequence consensus of an RNA family.
+
+CM's are {\em adaptive} because a new model is ``learned'' from a set
+of example ``training'' sequences.  CM's are {\em statistical} because
+they embody a probabilistic description of the consensus; mismatches,
+insertions, and deletions are permitted, and the penalties paid are
+learned from the training sequences that the model was constructed
+from.
+
+This is a preliminary document which only partially explains what's
+available in these programs. Much of the package is still actively
+evolving. However, between this document and the demonstration
+examples that are provided with the software, you should be able to
+learn enough about how the software works to start experimenting with
+it on your own.
+
+Using these programs, you can:
+\begin{itemize}
+\item generate new models, by training them on example sequences ({\tt
+      covet}) 
+\item produce multiple sequence alignments ({\tt covea})
+\item search DNA sequence databases for similar RNAs ({\tt covels})
+\item produce a consensus structure prediction for the whole family
+      ({\tt covee})
+\item produce individual structure predictions for sequences ({\tt coves -s})
+\end{itemize}
+
+However, there are two important limitations to keep in mind.  First,
+the basic structure of CM's is incapable of representing or predicting
+pseudoknots.  Second, these programs are slow and they are memory
+hogs; for a training set of RNA sequences of length 50-70, expect the
+alignment algorithm to chew up several megabytes of RAM, and to take a
+few seconds per sequence. The time requirement is most noticeable
+during training -- if you've got a set of 50 unaligned training
+sequences and it takes 30 iterations to converge on a new model, 30
+iterations x 50 sequences x 2 sec = about an hour. Memory and time
+requirements scale as approximately the cube of the individual
+sequence lengths; if you want to deal with 100 to 150-mers, you'll
+take an 8-fold hit in memory and time. Therefore, I don't recommend
+using these programs for RNAs longer than about 150 nucleotides
+(unless you've got a Cray at your desk). Stay tuned, I'm working hard
+on both limitations.
+
+\section {Tutorial}
+
+This section introduces the basic usage of the {\tt cove} package
+of programs by using examples. It should be sufficient to get you
+started using {\tt cove}. 
+
+First, a general note about all the programs. If you type the name of
+a program with no arguments, it will print out a short information
+page on the command line arguments it requires and the available
+options. This is nice, if you forget the order that arguments come in
+or if you can't remember the switch for a particular option.
+
+Let's assume you have a set of short RNA sequences that you think
+share a common structural consensus. They are all in one file, which
+we will call {\tt seqs.fa}, for instance: the {\tt .fa} is an abbreviation
+I use to indicate a FASTA-formatted sequence file. The format looks like
+this:
+
+\begin{quotation}
+{\tt > seq1 } \\
+{\tt ACGUAGCUGACUAUG } \\
+{\tt > seq2 } \\
+{\tt ACGUAGCUGCAUGUACGCAGU } \\
+}
+\end{quotation}
+
+In practice, the {\tt cove} programs will read a number of different
+common sequence formats. These include EMBL, GenBank, Intelligenetics,
+FASTA, and GCG formats for unaligned sequences. Alignments are
+accepted as GCG MSF format or my SELEX format (see the Demos directory
+for example SELEX-formatted alignments). Alignment formats can also be
+read where unaligned formats are expected. The package will
+automatically figure out what format your sequences are in.  (This
+capability is mostly thanks to Don Gilbert's {\tt Readseq} package,
+which I have borrowed and extended.)
+
+\begin{quotation}
+{\tt
+(logi)[8:57am]>> covet mymodel.cm seqs.fa\\
+(logi)[8:57am]>> covet -a seqs.msf mymodel.cm seqs.fa 
+}
+\end{quotation}
+
+This command (``{\tt cove t}raining'') will run the training
+algorithm, using the sequences in {\tt seqs.fa} as examples, and when
+it's done it will save the model in {\tt mymodel.cm}. The first
+command starts from a random alignment of the training sequences. The
+second command uses the alignment in {\tt seqs.msf} as its starting
+point; this is useful if you already have some idea of what the
+alignment should be.
+
+For a real problem this may take an hour or more! At each iteration,
+information is printed about the current average score of the model.
+This number is a log-odds score, in bits (log 2); the larger it is the
+better, and positive numbers mean the model matches the sequences
+better than a simple random-sequence model. 
+
+All subsequent commands use the trained model {\tt mymodel.cm}. The
+model is saved in a binary format; if you try to examine the {\tt
+mymodel.cm}, it will look like gibberish.
+
+\begin{quotation}
+{\tt
+(logi)[9:06am]>> covea mymodel.cm seqs.fa
+}
+\end{quotation}
+
+This command (``{\tt cove a}lignment'') will produce a multiple
+sequence alignment of the sequences in {\tt seqs.fa}, and print the
+alignment out.
+
+\begin{quotation}
+{\tt
+(logi)[9:07am]>> coves mymodel.cm seqs.fa
+(logi)[9:07am]>> coves -s mymodel.cm seqs.fa
+(logi)[9:07am]>> coves -m mymodel.cm seqs.fa
+}
+\end{quotation}
+
+This command (``{\tt cove s}core) computes the score of
+each whole sequence individually, and prints the scores.  You might
+use it to detect sequences which, according to the model, don't belong
+to the same structural consensus; sequences which don't fit the model
+get negative scores.
+
+There are two important options available for coves. The {\tt -s}
+option prints out not just the score, but also a terse representation
+of a structure prediction. $>$ and $<$ characters are used to
+represent paired positions. The {\tt -m} option prints out a more
+verbose ``mountain'' representation of the predicted structure.
+Both of these representations are described by Danielle Konings in
+J. Mol. Biol. 207:597-614, 1989.
+
+Note that covariance models routinely overpredict structure, because
+a) they don't look for Watson-Crick complementarity and b) it is often
+statistically advantageous for the model to pair as many positions as
+possible. Sometimes, these additional pairs are real tertiary
+contacts, but often they are just noise. The predicted secondary
+structure is a subset of the total predicted pairs. We don't yet
+provide a routine for using stacking and Watson-Crick complementarity
+criteria to do this separation automatically.
+
+\begin{quotation}
+{\tt
+(logi)[9:07am]>> covels -w 50 mymodel.cm /genbank/gbrna.seq
+}
+\end{quotation}
+
+This command (``{\tt cove l}ocal {\tt s}core'') would search a database
+(here, a hypothetical GenBank structural RNA database) and print
+scores and locations of all hits with positive scores (i.e.\ , good
+matches to the model). The difference between {\tt coves} and {\tt
+covels} is that {\tt covels} is a {\em local search} program instead
+of global alignment; it will find optimal matches to subsequences
+in a long sequence.  The {\tt -w 50} parameter sets the maximum length
+of match you expect to find (here, 50 bases). (The 'w' comes from
+``window''; it sets the size of the search scanning window.)  This
+parameter affects the running time and the memory consumption of {\tt
+covels} significantly, so you want to set it as small as you can get
+away with.
+
+Expect scanning rates to vary between 10-100 nucleotides/second. In
+other words, if you really do search GenBank\ldots{} be prepared to
+wait days or weeks (or years). A search for iron response elements, a
+28-base motif, in 140,000,000 bases of the EMBL 35 database took me 4
+days using ten processors of an Alliant FX/2800 mini supercomputer.
+Sigh. This is the major limitation of the software, and I'm working
+hard to get around it.
+
+\begin{quotation}
+{\tt
+(logi)[3:14pm]>> covee -b -l mymodel.cm
+}
+\end{quotation}
+
+This command (``{\tt cove e}mit'') emits a consensus structure
+prediction for the family. The {\tt -b} option means ``best'', emit
+only a consensus prediction; otherwise, it emits a number of sequences
+probabilistically from the model. The {\tt -l} option means a
+``mountain landscape'', making the consensus prediction get printed as
+described by Danielle Konings (J.  Mol.  Biol. 207:597-614, 1989);
+otherwise, only primary sequences are printed with another line of
+output schematically indicating base pairs.
+
+Again, the program's definition of a base-pair is more general than
+Watson-Crick pairing; a dumb heuristic is used by the landscape
+program to assign pairs to Watson-Crick or not.
+
+\end{document}

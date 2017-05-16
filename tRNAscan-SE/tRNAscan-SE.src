@@ -1,0 +1,1033 @@
+#! /usr/bin/perl
+#
+# --------------------------------------------------------------------
+# tRNAscan-SE: a program for improved detection of transfer RNA
+#              genes in genomic sequence
+#
+# Version 1.3.1
+#
+# Copyright (C) 2011 Patricia Chan and Todd Lowe 
+#
+# School of Engineering, University of California, Santa Cruz
+# lowe@soe.ucsc.edu
+# http://lowelab.ucsc.edu/
+# --------------------------------------------------------------------
+#
+# Algorithm & performance published in
+# Lowe, T.M. & Eddy, S.R., 
+# Nucl. Acids Res. 25, 955-964, 1997.
+#
+# --------------------------------------------------------------------
+#
+# Usage:
+# tRNAscan-SE [options] <FASTA file(s)> 
+#                           
+
+use strict;
+use Getopt::Long;
+use FindBin;
+use lib "$FindBin::RealBin";
+use tRNAscanSE::Utils;
+use tRNAscanSE::Constants;
+use tRNAscanSE::GeneticCode;
+use tRNAscanSE::Options;
+use tRNAscanSE::Eufind;
+use tRNAscanSE::Tscan;
+use tRNAscanSE::CM;
+use tRNAscanSE::LogFile;
+use tRNAscanSE::Stats;
+use tRNAscanSE::Sequence;
+use tRNAscanSE::ScanResult;
+use tRNAscanSE::SS;
+
+# set when built by 'make'
+our $version = "";                                                                        
+our $release_date = "";
+our $program_id = "tRNAscan-SE-".$version;
+# modified by 'make'
+our $bindir = "";                                                                        
+our $lib_dir = "/usr/local/lib/tRNAscanSE/";                
+our $temp_dir = "/tmp";
+
+# set location of temp files
+if ($ENV{TMPDIR}) {
+    $temp_dir = $ENV{TMPDIR}; 
+} 
+
+# Global variables
+our @fp_start_time;                                                
+our $constants = tRNAscanSE::Constants->new;
+our $opts = tRNAscanSE::Options->new;
+our $log = tRNAscanSE::LogFile->new;
+our $eufind = tRNAscanSE::Eufind->new;
+our $tscan = tRNAscanSE::Tscan->new;
+our $cm = tRNAscanSE::CM->new;
+our $gc = tRNAscanSE::GeneticCode->new;
+our $stats = tRNAscan::Stats->new;
+our $seq_file = tRNAscanSE::Sequence->new;
+
+# Signal handling
+$SIG{'TERM'} = 'error_handler';
+$SIG{'QUIT'} = 'error_handler';
+$SIG{'INT'} = 'error_handler';
+
+&set_options();                                 # set user-selectable options
+
+# set location of binaries & data files, 
+# plus, check to make sure they are there
+$cm->set_file_paths($opts);
+$cm->check_lib_files($opts, $lib_dir);
+$cm->set_bin($bindir);
+$eufind->set_bin($bindir);
+$tscan->set_bin($bindir);
+
+# initialize variables
+$constants->set_temp_file_names($temp_dir);
+$gc->read_transl_table($opts);
+if ($opts->save_stats()) {
+    $stats->file_name($opts->stats_file());
+}
+
+my @prescan_tRNAs = ();
+
+my %global_vars = ('constants' => $constants,
+                   'opts' => $opts,
+                   'cm' => $cm);
+
+# Start processing
+&initialize_process();
+if ($opts->tscan_mode() || $opts->eufind_mode()) {   
+    &first_pass_prescan();  
+}        # (prescan with either tRNAscan/eufind or both)
+
+# Check to see if no sequences were read from input file(s)
+if (($stats->numscanned() == 0) && ($opts->eufind_mode() || $opts->tscan_mode())) {
+    if ($opts->seq_key() ne '\S*') {
+        die "\nNo FASTA sequences matching \'".$opts->raw_seq_key()."\' key found\n\n";
+    }
+    elsif ($opts->multiple_files()) {
+        die "\nFATAL: No sequences in FASTA format found in ", join(', ',@ARGV),"\n\n"; }
+    else {
+        die "\nFATAL: No sequences in FASTA format found in file ".$opts->fastafile()."\n\n";
+    }
+}
+
+# Run Cove or Infernal on candidate tRNAs picked in first pass,
+#  or by itself on seqs if no first pass searches
+elsif ($opts->cove_mode() || $opts->infernal_mode()) {
+    &run_cm_scan();
+}        # if Using second-pass scanner
+
+$stats->end_sp_timer();
+
+if ($opts->save_stats()) {
+    $stats->open_file();
+    $stats->save_final_stats($opts, $gc, \@prescan_tRNAs, $cm->tab_results());
+    $stats->close_file();
+}
+
+$log->close_file();    
+
+&cleanup();                        # clean up temp files
+exit(0);
+
+# END main
+
+
+sub initialize_process {
+    
+    # print program info header, credits, & selected run options
+    if (!$opts->quiet_mode()) {
+        print STDERR "\ntRNAscan-SE v.$version ($release_date) -",
+            " scan sequences for transfer RNAs\n";
+        &display_credits();
+        $opts->display_run_options($cm, $tscan, $eufind, *STDERR);
+    }
+    
+    $stats->start_fp_timer();                    # save starting time
+    
+    # if statistics are being saved, write run options in stats file
+    if ($opts->save_stats()) {
+        my $host = `hostname`;
+        chomp($host);
+        $stats->open_file();
+        $stats->write_line("\ntRNAscan-SE v.$version ($release_date) scan results (on host $host)\nStarted: ".`date`);
+        $opts->display_run_options($cm, $tscan, $eufind, $stats->FILE_H());
+        $stats->close_file();
+    }
+}
+
+# Running tRNAscan and/or EufindtRNA  
+sub first_pass_prescan {
+    
+    $log->write_line("\nPhase I: Searching for tRNAs with tRNAscan and/or EufindtRNA\n");
+
+    # open seq file to search
+    $seq_file->open_file($opts->fasta_file(), "read");
+
+    # Main loop for reading seqs & scanning with tRNAscan and/or
+    #  EufindtRNA
+    
+    my $targ_seq_id = 0;      # Don't look for a specific Seq number
+    my $start_index     = 1;
+    my $sequence_scanned = 0;
+    my $eufind_output;
+    my @hit_list = ();
+    my $tmp_raw = $constants->tmp_raw();
+    my $tmp_fa = $constants->tmp_fa();
+    my $tmp_fa_file = tRNAscanSE::Sequence->new;
+    my $missing_fa_file = tRNAscanSE::Sequence->new;
+    
+    while ($seq_file->read_fasta($opts, $targ_seq_id)) {
+        if ($opts->cove_mode() || $opts->infernal_mode()) {
+            $log->write_line("Scanned seqs: ".$stats->numscanned()." (at ".$seq_file->seq_name().")");
+        }
+        $stats->increment_numscanned();
+        $stats->increment_first_pass_base_ct($seq_file->seq_length());
+                
+        do {
+            # Write one input sequence / seq buffer to tmp_fa file
+            
+            $tmp_fa_file->open_file($tmp_fa, "write");
+            $tmp_fa_file->set_seq_info($seq_file->seq_name(), $seq_file->seq_description(),
+                                       $seq_file->seq_length(), $seq_file->sequence());
+            $tmp_fa_file->write_fasta();
+            $tmp_fa_file->close_file();
+            
+            # Run tRNAscan on $tmp_fa file & write results to
+            #  $tmp_raw output file
+            
+            if ($opts->tscan_mode()) {
+                $tscan->run_tRNAscan($tmp_fa, $tmp_raw,
+                                     $start_index, $lib_dir, $seq_file->seq_name());
+                if ($opts->save_verbose()) {
+                    $tscan->append_verbfile($opts->verb_file(), $tmp_fa, $seq_file->seq_name());
+                }
+                $tscan->process_tRNAscan_hits($constants, $gc, $stats, $seq_file->seq_name(), \@hit_list);
+            }
+            
+            # Run eufindtRNA program & save results in memory
+            #  in $Eufind_output array
+            
+            if ($opts->eufind_mode()) {
+                $eufind_output = $eufind->run_eufind($tmp_fa, $start_index,
+                                                     $opts->max_int_len(), $seq_file->seq_name());
+                if ($eufind_output ne "") {
+                    $eufind->process_Eufind_hits($constants, $stats, \@hit_list, $eufind_output);
+                    $eufind_output = "";
+                }
+            }
+
+            $sequence_scanned = 1;    # Flag indicating current sequence has been scanned 
+
+            # Check to see if all of sequence was read in last buffer-sized chunck
+            
+            if ($seq_file->seq_buf_overrun()) {
+                $start_index = $seq_file->buffer_end_index() + 1;
+                if ($seq_file->read_more_fasta()) {
+                    $sequence_scanned = 0;
+                }
+            }
+            
+        } until ($sequence_scanned); 
+        
+        if ($#hit_list >= 0) {
+            $stats->increment_seqs_hit();
+            
+            # save results in ACeDB format now if not 
+            #   using Cove analysis
+            if ($opts->ace_output() && (!$opts->CM_mode())) {
+                &save_Acedb_from_firstpass($opts->output_codon(), $gc->one_let_trans_map(),
+                                            \@hit_list, $opts->out_file());
+            }
+            else {
+                # save all hits for this seq
+                my $fpass_trna_base_ct = $stats->fpass_trna_base_ct();
+                &save_firstpass_output($opts, \@hit_list, $constants->source_tab(), \$fpass_trna_base_ct,
+                                       $seq_file->seq_length(), $seq_file->seq_id());
+                $stats->fpass_trna_base_ct($fpass_trna_base_ct);
+            }
+
+            @hit_list = ();                    # clear hit array
+        }
+        elsif ($opts->save_missed()) {
+            # save sequence that had no tRNA hits if -M param set
+            # NOTE: only writes last frame of seq buffer if seq length > max_seq_buffer
+            $missing_fa_file->open_file($opts->missed_seq_file(), "append");
+            $missing_fa_file->set_seq_info($seq_file->seq_name(), $seq_file->seq_description(),
+                                           $seq_file->seq_length(), $seq_file->sequence());
+            $missing_fa_file->write_fasta();
+            $missing_fa_file->close_file();
+        }
+        
+        $seq_file->reset_buffer_ct();
+        $start_index     = 1;
+        
+    }     # while (read_fasta()) - still more seqs to scan
+
+    $seq_file->close_file();
+                                        # remove temporary files
+    system("rm -f $tmp_raw $tmp_fa");
+    $seq_file->release_memory();        # release memory
+  
+    $log->write_line("\n".$stats->numscanned()." seqs scanned, ".$stats->seqs_hit()." seqs had at ".
+        "least one hit.\n".$stats->trnatotal()." total tRNAs predicted in first pass scans\n"); 
+
+    if ((!$opts->CM_mode()) && ($stats->trnatotal() == 0)  && (!$opts->quiet_mode())) {
+        print STDERR "No tRNAs found.\n\n";
+    }
+    
+    $stats->end_fp_timer();             # save time first-pass scans are done
+
+    if ($opts->save_stats()) {
+        $stats->open_file();
+        $stats->save_firstpass_stats();
+        $stats->close_file();
+    }    
+}
+
+# Run Cove or Infernal
+sub run_cm_scan {
+    
+    $stats->start_sp_timer();
+    
+    if ($opts->tscan_mode() || $opts->eufind_mode()) {
+        $log->write_line("\nPhase II: ".$opts->second_pass_label()." verification of candidate ".
+            "tRNAs detected\n          with tRNAscan and/or EufindtRNA\n"); 
+    }
+    else {
+        $log->write_line("\nRunning ".$opts->second_pass_label()." analysis\n");
+        if (!$opts->use_prev_ts_run()) {
+            &prep_for_secpass_only($opts, $stats, $seq_file);
+        }
+    }
+        
+    my $prev_seq_name = '';         # Name of tRNA sequence currently in memory
+    my $seqinfo_flag = 0;           # flag indicates if seqid and seqlen are saved
+                                    #  in firstpass result file
+    my $curseq_trnact = 0;
+    my $r_prescan_tRNA;
+    my $tRNAs_found = 0;
+    my @sec_pass_hits = ();
+
+    $seq_file->open_file($opts->fasta_file(), "read");
+
+    &parse_tabular_output($opts, \@prescan_tRNAs, \$seqinfo_flag);
+
+    for (my $tRNA_ct=0; $tRNA_ct <= $#prescan_tRNAs; $tRNA_ct++) 
+    {
+        $r_prescan_tRNA = $prescan_tRNAs[$tRNA_ct];
+
+        # Reset tRNA counter for each new sequence
+        if ($r_prescan_tRNA->{src_seqname} ne $prev_seq_name) {
+            $curseq_trnact = 0;
+        }
+        
+        # Retrieve tRNA sequence and write to tmp_trnaseq_file
+        if (!&prepare_tRNA_to_scan($seq_file, $r_prescan_tRNA)) {
+            next;
+        }
+        
+        if ($opts->cove_mode()) 
+        {
+            $tRNAs_found = $cm->analyze_with_cove($opts, $constants, $stats, $gc, $log, $program_id,
+                                       $r_prescan_tRNA, $constants->tmp_trnaseq_file(), \$curseq_trnact, \@sec_pass_hits);
+        }
+        elsif ($opts->infernal_mode()) 
+        {
+            $tRNAs_found = $cm->analyze_with_cmsearch($opts, $constants, $stats, $gc, $log, $program_id,
+                                           $r_prescan_tRNA, $constants->tmp_trnaseq_file(), \$curseq_trnact, \@sec_pass_hits);
+        }
+
+        $prev_seq_name = $r_prescan_tRNA->{src_seqname};
+        
+        if (!$cm->CM_check_for_introns()) {
+            $stats->increment_total_secpass_ct($tRNAs_found);
+        }
+        
+    }
+
+    if (($cm->CM_check_for_introns() || $cm->CM_check_for_split_halves()) && (scalar(@sec_pass_hits) > 0)) {
+        $cm->scan_noncanonical_introns($opts, $constants, $stats, $gc, $log, $seq_file, \@sec_pass_hits);
+        if ($cm->CM_check_for_split_halves()) {
+            $cm->scan_split_tRNAs($opts, $constants, $stats, $gc, $log, \@sec_pass_hits);
+        }
+        
+        for (my $ct = 0; $ct < scalar(@sec_pass_hits); $ct++) {
+            &output_tRNA($opts, $gc, $log, $cm->tab_results(), $cm->get_hmm_score(), $program_id,
+                         $sec_pass_hits[$ct], $sec_pass_hits[$ct], $ct+1);
+            $stats->increment_total_secpass_ct(1);
+        }
+    }
+    $seq_file->close_file();
+    
+    if (($stats->total_secpass_ct() == 0) && (!$opts->quiet_mode())) {
+        print STDERR "No tRNAs found.\n\n";
+    }
+}
+
+# Extracts tRNA sequence with given coordinates, and writes to 
+# $tmp_
+sub prepare_tRNA_to_scan {
+    
+    my ($seq_file, $r_tRNA_info) = @_;
+    
+    my ($tRNA_seq, $upstream, $downstream) = $seq_file->get_tRNA_sequence($r_tRNA_info->{src_seqname}, $r_tRNA_info->{strand},
+                                                                           $r_tRNA_info->{start}, $r_tRNA_info->{end},
+                                                                           $log, $opts, $constants);
+    $r_tRNA_info->{seq} = $tRNA_seq;
+    $r_tRNA_info->{upstream} = $upstream;
+    $r_tRNA_info->{downstream} = $downstream;
+    
+    $stats->increment_secpass_base_ct($r_tRNA_info->{len});
+    
+    &write_tRNA($constants->tmp_trnaseq_file(), $seq_file->seq_name(), $seq_file->seq_description(), $r_tRNA_info->{seq}, 1);
+    
+    $seq_file->release_memory();
+    
+    return 1;
+}
+
+sub cleanup {                        # clean up temp files
+
+    system("rm -f ".$opts->temp_dir()."/tscan$$".'*');
+    system("rm -f ".$opts->fafile().".pid");
+}
+
+sub error_handler {
+    
+    print "\nAborting tRNAscan-SE\n\n";
+
+    my $ppid = $$;
+    my $psout = `ps -ef`;
+    my @ps_lines = split(/\n/,$psout);
+    foreach my $line (0..$#ps_lines) {
+        if ($ps_lines[$line] =~/^\s+\S+\s+(\d+)\s+($ppid)\s/) {
+#           print STDERR "Killing process $1:\n",$ps_lines[$line],"\n";
+            my $killct = kill 'KILL', $1;
+#           print STDERR "$killct jobs received the kill signal\n";
+        }
+    }
+    
+    &cleanup();
+    exit(1);
+}
+
+sub display_credits {
+
+    print STDERR "\n  Please cite: \n",
+    "\tLowe, T.M. & Eddy, S.R. (1997) \"tRNAscan-SE: A program for\n",
+    "\timproved detection of transfer RNA genes in genomic sequence\"\n",
+    "\tNucl. Acids Res. 25: 955-964.\n",
+    "\n  This program uses a modified, optimized version of tRNAscan v1.3\n",
+    "  (Fichant & Burks, J. Mol. Biol. 1991, 220: 659-671),\n",
+    "  a new implementation of a multistep weight matrix algorithm\n",
+    "  for identification of eukaryotic tRNA promoter regions\n",
+    "  (Pavesi et al., Nucl. Acids Res. 1994, 22: 1247-1256),\n",
+    "  as well as the RNA covariance analysis package Cove v.2.4.2\n",
+    "  (Eddy & Durbin, Nucl. Acids Res. 1994, 22: 2079-2088).\n\n";
+}
+
+sub print_usage {
+
+    print STDERR "\nUsage: tRNAscan-SE [-options] <FASTA file(s)>\n\n";
+    print STDERR "  Scan a sequence file for tRNAs using tRNAscan, EufindtRNA &\n",
+    "   tRNA covariance models\n",
+    "          -- defaults to use with eukaryotic sequences \n",
+    "             (use -B, -A, -O or -G to scan other types of sequences)\n\n",
+    "Basic Options\n",
+    "  -B         : search for bacterial tRNAs (use bacterial tRNA model)\n",
+    "  -A         : search for archaeal tRNAs  (use archaeal tRNA model)\n",
+    "  -O         : search for organellar (mitochondrial/chloroplast) tRNAs\n",
+    "  -G         : use general tRNA model (cytoplasmic tRNAs from all 3 domains included)\n\n",
+    "  -i         : search using Infernal cm analysis only (max sensitivity, very slow)\n",
+    "  -C         : search using Cove analysis only (high sensitivity, very slow)\n\n",
+    "  -o <file>  : save final results in <file>\n",
+    "  -f <file>  : save tRNA secondary structures to <file>\n",
+    "  -a         : output results in ACeDB output format instead of default\n",
+    "               tabular format\n",
+    "  -m <file>  : save statistics summary for run in <file>\n",
+    "               (speed, # tRNAs found in each part of search, etc)\n",        
+    "  -H         : show both primary and secondary structure components to\n",
+    "               covariance model bit scores\n",
+    "  -q         : quiet mode (credits & run option selections suppressed)\n\n",
+    "  -h         : print full list (long) of available options\n\n";
+}
+
+sub print_all_options {
+
+    print  "\nUsage: tRNAscan-SE [-options] <FASTA file(s)>\n\n";
+    print  "  Scan a sequence file for tRNAs using tRNAscan, EufindtRNA &\n",
+    "   tRNA covariance models\n",
+    "   -- defaults to use with eukaryotic sequences \n",
+    "      (use 'Search Mode Options' below to scan other types of sequences)\n\n",
+    "Search Mode Options:\n\n",
+    "  -B  --bact            : search for bacterial tRNAs (use bacterial tRNA model)\n",
+    "  -A  --arch            : search for archaeal tRNAs (use archaeal tRNA model)\n",
+    "  -O  --organ           : search for organellar (mitochondrial/chloroplast) tRNAs\n",
+    "  -G  --general         : use general tRNA model (cytoplasmic tRNAs from all 3 domains included)\n\n",
+    "  -C  --cove            : search using covariance model analysis only (max sensitivity, slow)\n",
+    "  -i  --infernal        : search using Infernal cm analysis only (max sensitivity, very slow)\n",
+    "      --newscan         : search using Infernal and new cm models instead of Cove\n",
+    "  -H  --breakdown       : show breakdown of primary and secondary structure components to\n",
+    "                            covariance model bit scores\n",
+    "  -D  --nopseudo        : disable pseudogene checking\n\n",
+    
+    "Achaeal-specific options:\n\n",
+    "      --ncintron        : scan for noncanonical introns\n",
+    "      --frag <file>     : scan for putative tRNA gene fragments that may form split tRNAs\n",
+    "                            and save results in <file>\n\n",
+    
+    "Output options:\n\n",
+    "  -o  --output <file>   : save final results in <file>\n",
+    "  -f  --struct <file>   : save tRNA secondary structures to <file>\n",
+    "  -a  --acedb           : output results in ACeDB output format instead of default\n",
+    "                            tabular format\n",
+    "  -m  --stats <file>    : save statistics summary for run in <file>\n",
+    "                            (speed, # tRNAs found in each part of search, etc)\n\n",        
+    "  -d  --progress        : display program progress messages\n",
+    "  -l  --log <file>      : save log of program progress in <file>\n\n",
+    "  -q  --quiet           : quiet mode (credits & run option selections suppressed)\n",
+    "  -b  --brief           : brief output format (no column headers)\n\n",
+    "  -N  --codons          : output corresponding codons instead of tRNA anticodons\n\n",
+    "  -? \#                 : '#' in place of <file> chooses default name for output files\n",
+    "  -p  --prefix <label>  : use <label> prefix for all default output file names\n\n",
+    "  -y  --hitsrc          : show origin of first-pass hits (Ts=tRNAscan 1.4,\n",
+    "                            Eu=EufindtRNA, Bo= Both)\n\n",
+    
+    "Specify Alternate Cutoffs / Data Files:\n\n",
+    "  -X  --score <score>   : set cutoff score (in bits) for reporting tRNAs (default=20)\n",   
+    "  -L  --len <length>    : set max length of tRNA intron+variable region (default=116bp)\n\n",
+    "  -I  --iscore <score>  : manually set \"intermediate\" cutoff score for EufindtRNA\n",    
+    "  -z  --pad <number>    : use <number> nucleotides padding when passing first-pass\n",
+    "                            tRNA bounds predictions to CM analysis (default=8)\n\n",     
+    "  -g  --gencode <file>  : use alternate genetic codes specified in <file> for\n",
+    "                            determining tRNA type\n",
+    "  -c  --cm <file>       : use an alternate covariance model in <file>\n\n",
+    
+    "Misc Options:\n\n",
+    "  -h  --help            : print this help message\n",
+    "  -Q  --forceow         : do not prompt user before overwriting pre-existing\n",
+    "                            result files  (for batch processing)\n\n",    
+    "  -n  --match <EXPR>    : search only sequences with names matching <EXPR> string\n",
+    "                            (<EXPR> may contain * or ? wildcard chars)\n", 
+    "  -s  --search <EXPR>   : start search at sequence with name matching <EXPR> string\n",
+    "                            and continue to end of input sequence file(s)\n", 
+
+    "Special Options (for testing & special purposes)\n\n",
+    "  -T  --tscan           : search using tRNAscan only (defaults to strict params)\n",
+    "  -t  --tmode <mode>    : explicitly set tRNAscan params, where <mode>=R or S\n",
+    "                            (R=relaxed, S=strict tRNAscan v1.3 params)\n\n",
+    "  -E  --eufind          : search using Eukaryotic tRNA finder (EufindtRNA) only\n",
+    "                            (defaults to Normal seach parameters when run alone,\n",
+    "                            or to Relaxed search params when run with Cove)\n",
+    "  -e  --emode <mode>    : explicitly set EufindtRNA params, where <mode>=R, N, or S\n",
+    "                            (relaxed, normal, or strict)\n\n",
+    "  -r  --fsres <file>    : save first-pass scan results from EufindtRNA and/or\n",
+    "                            tRNAscan in <file> in tabular results format\n",
+    "  -u  --filter <file>   : search with Cove only those sequences & regions delimited\n", 
+    "                            in <file> (tabular results file format)\n", 
+    "  -F  --falsepos <file> : save first-pass candidate tRNAs in <file> that were then\n",
+    "                            found to be false positives by Cove analysis\n",
+    "  -M  --missed <file>   : save all seqs that do NOT have at least one\n",
+    "                            tRNA prediction in them (aka \"missed\" seqs)\n",
+    "  -v  --verbose <file>  : save verbose tRNAscan 1.3 output to <file>\n",
+    "  -V  --version <vers>  : run an alternate version of tRNAscan\n",
+    "                            where <vers> = 1.3, 1.39, 1.4 (default), or 2.0\n",
+    "      --nomerge         : Keep redundant tRNAscan 1.3 hits (don't filter out multiple\n",
+    "                            predictions per tRNA identification)\n",
+    "\n\n";
+}
+
+sub set_options {
+    
+    # clear option vars
+    our $opt_acedb=0; our $opt_brief=0; our $opt_quiet=0; our $opt_progress=0; 
+    our $opt_bact=0; our $opt_arch=0; our $opt_organ=0; our $opt_general=0; 
+    our $opt_cove=0; our $opt_infernal=0; our $opt_eufind=0; our $opt_tscan=0; our $opt_newscan=0;
+    our $opt_ncintron=0; our $opt_frag='';
+    our $opt_breakdown=0; our $opt_nopseudo=0; our $opt_nomerge=0; our $opt_hitsrc=0;
+    our $opt_output=''; our $opt_struct=''; our $opt_stats=''; our $opt_log='';
+    our $opt_prefix=''; our $opt_match=''; our $opt_search='';
+    our $opt_gencode=''; our $opt_cm=''; our $opt_codons=0; 
+    our $opt_tmode=''; our $opt_emode=''; our $opt_fsres=''; our $opt_filter=''; our $opt_falsepos=''; our $opt_missed='';
+    our $opt_score=1000; our $opt_iscore=1000; our $opt_len=-1; our $opt_pad=1000;
+    our $opt_version=0; our $opt_help=0; our $opt_verbose=''; our $opt_forceow=0;
+    our $opt_w=''; our $opt_U=0; our $opt_Y=0;
+
+    Getopt::Long::Configure("bundling", "no_ignore_case", "no_auto_abbrev");
+    my $result = &GetOptions(
+                            # Misc option switches
+                            "help|h",
+                            "acedb|a","brief|b","quiet|q","hitsrc|y","breakdown|H",
+                            "Y",                          
+                            "progress|d","nopseudo|D","codons|N","forceow|Q","nomerge",
+                            # Search mode switches
+                            "bact|B", "arch|A", "organ|O", "general|G",
+                            "eufind|E", "tscan|T", "cove|C","infernal|i", "newscan",
+                            "ncintron", "frag=s",
+                            # file name input specifiers
+                            "gencode|g=s","filter|u=s","cm|c=s",
+                            # file name output specifiers 
+                            "output|o=s","stats|m=s","log|l=s","struct|f=s","fsres|r=s","verbose|v=s","w=s","falsepos|F=s","missed|M=s",
+                            #string parameters
+                            "prefix|p=s","match|n=s","search|s=s","emode|e=s","tmode|t=s",
+                            #numerical parameters
+                            "version|V=f","score|X=f","iscore|I=f","pad|z=i","len|L=i");
+
+    if ($opt_help) {
+        print STDERR "\ntRNAscan-SE $version ($release_date)\n";
+        &display_credits;
+        &print_all_options;
+        exit(0);
+    }
+    if ($#ARGV < 0) {
+        print STDERR "\ntRNAscan-SE $version ($release_date)\n";
+        print STDERR "\nFATAL: No sequence file(s) specified.\n";
+        &print_usage();
+        exit(1);
+    }
+        
+    my $fafile =  $ARGV[0];                         # use input seq file name as prefix
+    $fafile =~ s/\.fa|\.seq$//;                     # for default output file names
+                                                                                                        #  take .seq or .fa extensions off 
+
+    if ($opt_prefix ne '') {                        # use specified prefix for default
+        $fafile = $opt_prefix;                      #  output file names
+    }
+    $opts->fafile($fafile);                         
+
+    if ($opt_forceow != 0) {                        # Do NOT prompt before overwriting pre-existing
+                                                    # output files;  good for use in batch-mode jobs
+        $opts->prompt_for_overwrite(0);
+    }
+
+    if ($opt_output ne '') {                        # set name of result file
+        $opts->results_to_stdout(0);
+        if ($opt_output eq "#") {
+            $opts->out_file("$fafile.out");
+        }            
+        else {
+            $opts->out_file($opt_output);
+        }
+        &check_output_file($opts->out_file(), $opts->prompt_for_overwrite());
+    }
+
+    if ($opt_acedb != 0) {                          # save results in ACeDB output
+        $opts->ace_output(1);
+    }        
+    if ($opt_brief != 0) {                          # use brief output (suppress column header)  
+        $opts->brief_output(1);    
+    }        
+    if ($opt_quiet != 0) {                          # use quite mode (suppress credits & 
+        $opts->quiet_mode(1);                       #  user-selected options)
+    }        
+    
+    if ($opt_hitsrc != 0) {                         # save source of tRNA hit
+        $opts->save_source(1);
+    }
+
+    if ($opt_nopseudo != 0) {          
+        $cm->skip_pseudo_filter(1);                 # disable psuedogene filtering
+    } 
+
+    if ($opt_codons != 0) {          
+        $opts->output_codon(1);                     # translate anticodon to codon for output
+    } 
+
+    if ($opt_match ne '') {                         # search only sequences matching KEY name
+        $opts->seq_key($opt_match);
+        $opts->raw_seq_key($opts->seq_key());       # save original KEY expr
+        my $key = $opts->seq_key();
+        $key =~ s/(\W)/\\$1/g;
+        $key =~ s/\\\*/\\S\*/g;                     # turning KEY into regular expression
+        $key =~ s/\\\?/\\S/g;                       #  notation
+        $key =~ s/[\"\']//g;                        # "
+        $opts->seq_key($key);
+    }
+    elsif ($opt_search ne '') {                     # search all sequences after matching KEY 
+        $opts->start_at_key(1);
+        $opts->seq_key($opt_search);
+        $opts->raw_seq_key($opts->seq_key());       # save original KEY expr
+        my $key = $opts->seq_key();
+        $key =~ s/(\W)/\\$1/g;
+        $key =~ s/\\\*/\\S\*/g;                     # turning KEY into regular expression
+        $key =~ s/\\\?/\\S/g;                       #  notation
+        $key =~ s/[\"\']//g;                        # "
+        $opts->seq_key($key);
+    }
+    else {
+        $opts->seq_key('\S*');
+    }
+
+    if ($opt_organ != 0) {                          # shorthand for setting options
+        $opt_cove = 1;                              # cove mode is best for organellar scans
+        $opt_eufind = 0;                            # (mito/chloroplast)
+        $opt_tscan = 0;
+        $opts->search_mode("general");              # use original "General" tRNA model
+    
+        $opts->org_mode(1);
+        $cm->cm_cutoff(15);                         # lower cove cutoff score
+        $cm->skip_pseudo_filter(1);                 # disable psuedogene checking
+    }
+    
+    if ($opt_bact != 0) {
+        $eufind->eufind_intscore(-36.0);            # cutoff for bacterial tRNAs
+                                                    # using relaxed mode eufindtRNA
+        $opts->search_mode("bacteria");             # use arch/bact SelCys covariance model
+    }
+
+    $cm->CM_check_for_introns(0);
+    $cm->CM_check_for_split_halves(0);
+    if ($opt_arch != 0) {
+        $opts->CM_mode("cove");
+        $eufind->eufind_intscore(-36.0);            # cutoff for bacterial/arch tRNAs
+                                                    # using relaxed mode eufindtRNA
+        $opts->search_mode("archaea");              # use Arch covariance model
+        
+        if ($opt_ncintron != 0) {
+            $cm->CM_check_for_introns(1);           # check for non-canonical introns
+        }
+
+        if ($opt_frag ne '') {
+            $cm->CM_check_for_split_halves(1);      # check for tRNA fragments of split tRNAs
+            if ($opt_frag eq "#") {
+                $opts->split_fragment_file("$fafile.frag");        
+            }
+            elsif (($opt_frag eq "\$") || 
+                   ($opt_frag eq "-")) {              # sends structure output to stdout
+                $opts->split_fragment_file("-");            #  instead of tabular output
+                if ($opts->results_to_stdout()) {
+                    $opts->results_to_stdout(0);
+                    $opts->out_file("/dev/null");      
+                }  
+            }
+            else {
+                $opts->split_fragment_file($opt_frag);
+            }
+            &check_output_file($opts->split_fragment_file(), $opts->prompt_for_overwrite());            
+        }
+    }
+
+    if ($opt_general != 0) {                        # use original general cove model
+        $opts->search_mode("general");              # with all tRNAs from 3 domains
+    }
+
+    if ($opt_newscan && $opt_cove) {
+        die "FATAL: Conflicting search options have been selected. --newscan and -C cannot be used simultaneously.\n";
+    }
+
+    if ($opt_newscan) {                             # use old tRNAscan-SE method for scanning (Cove instead of infernal)
+            $opts->CM_mode("infernal");
+    }
+
+    if ($opt_cove != 0) {                           # do Cove scan only
+        $opts->CM_mode("cove");          
+    }
+    
+    if ($opt_infernal != 0) {                       # do Cove scan only
+        $opts->CM_mode("infernal");          
+    }
+    
+    if ($opt_cove || $opt_infernal) {
+        $opts->tscan_mode(0);                       # don't use tRNAscan unless
+                                                    #  also specified by -T option
+        $opts->eufind_mode(0);                      # don't use eufindtRNA unless
+                                                    #  also specified by -E option
+    }
+    
+    if ($opt_tscan != 0) {                          # do tRNAscan only, skip Cove
+        $opts->tscan_mode(1);
+        $tscan->tscan_params("-s");                 # if only using tRNAscan, use
+        $opts->strict_params(1);                    #  strict tRNAscan 1.3  params
+                                                    #  since Cove won't eliminate high
+                                                    #  false pos rate with default params
+                                                    
+        if (($opt_cove == 0) || ($opt_infernal == 0)) {
+            $opts->CM_mode("");                     # if -C isn't also specified
+        }                                           #  turn off Cove filtering
+                                                    # if -i isn't also specified
+                                                    #  turn off infernal filtering
+
+        if ($opt_eufind == 0) {                     # if -E option isn't also specified
+            $opts->eufind_mode(0);                  #  turn off eufindtRNA
+        }
+    }
+
+    if ($opt_tmode ne '') {                         # set tRNAscan search params
+        $opt_tmode = uc($opt_tmode);
+        if ($opt_tmode eq "R") {
+            $tscan->tscan_params("-r");             # use relaxed tRNAscan params
+            $opts->strict_params(0);
+        }                          
+        elsif ($opt_tmode eq "S") {
+            $tscan->tscan_params("-s");             # use strict tRNAscan v1.3 params  
+            $opts->strict_params(1);
+        }                          
+        elsif ($opt_tmode eq "A") {
+            $tscan->tscan_params("-a");             # use alternate tRNAscan params
+            $opts->strict_params(0);
+        }                           
+        else {
+            print STDERR "\nWARNING: tRNAscan parameter specified",
+            " with -t option not recognized.\n",
+            "         Defaulting to strict tRNAscan params\n\n";
+            $tscan->tscan_params("-s");  
+            $opts->strict_params(1);
+        }
+    }    
+
+    if ($opt_nomerge != 0) {                        # don't merge redundant tRNAscan hits
+                                                    # option only for diagnostic purposes
+        $tscan->keep_tscan_repeats(1);
+    }
+               
+    if ($opt_eufind != 0) {                         # use eufindtRNA 
+        $opts->eufind_mode(1);
+        
+        if (($opt_cove == 0) || ($opt_infernal == 0)) {
+            $opts->CM_mode("");                     # if -C isn't also specified
+        }                                           #  turn off Cove filtering
+                                                    # if -i isn't also specified
+                                                    #  turn off infernal filtering
+                                                    
+        if (!$opts->cove_mode() && !$opts->infernal_mode()) {
+            $eufind->eufind_params("");             # use more strict default params
+                                                    # if no second-pass filtering
+        }
+        else {                                      # use more relaxed params if using
+                                                    # second-pass filtering
+            $eufind->eufind_params("-r");  
+        }
+       if ($opt_tscan == 0) {                       # turn off tRNAscan if not specified
+            $opts->tscan_mode(0);                   # on command line
+        }
+    }
+
+    if ($opt_emode ne '') {                         # set eufindtRNA search params
+        $opt_emode = uc($opt_emode);
+        if ($opt_emode eq "R") {
+            $eufind->eufind_params("-r");           # use relaxed params
+        }                                           # does not look for poly T
+        elsif ($opt_emode eq "N") {
+            $eufind->eufind_params("");             # use default params
+        }                                           # penalizes for no poly T        
+        elsif ($opt_emode eq "S") {
+            $eufind->eufind_params("-s");           # use strict params  
+                                                    # requires poly T 
+            $eufind->eufind_intscore(-31.25);       # default intermediate cutoff
+                                                    # for original algorithm
+        }
+        else {
+            print STDERR "\nWARNING: EufindtRNA parameter specified",
+            " with -e option not recognized.\n",
+            "         Defaulting to relaxed EufindtRNA params\n\n";
+            $eufind->eufind_params("-r");  
+        }
+    }
+
+    if ($opt_iscore != 1000) {
+        $eufind->eufind_intscore($opt_iscore);
+    }
+
+    if ($opt_pad != 1000) {                         # pad both ends of first-pass hits with this
+        $opts->padding($opt_pad);                 # many extra bases before passing to Cove      
+    }
+
+    if ($opt_gencode ne '') {                       # use alternate genetic code table
+        $opts->gc_file($opt_gencode); 
+        $opts->alt_gcode(1);     
+    }
+        
+    if ($opt_breakdown != 0) {                      # get HMM score for tRNA hits
+        $cm->get_hmm_score(1);
+    }
+
+    if ($opt_cm ne '') {                            # use alternate covariance model
+        $cm->alt_cm_file($opt_cm);
+        $cm->skip_pseudo_filter(1);                 # disable psuedogene checking
+        $cm->get_hmm_score(0);                      # don't try to get hmm score
+    }
+    
+    if ($opt_stats ne '') {                         # save stats summary file 
+        $opts->save_stats(1);
+        if ($opt_stats eq "#") {
+            $opts->stats_file("$fafile.stats");
+        }            
+        else {
+            $opts->stats_file($opt_stats);
+        }
+        &check_output_file($opts->stats_file(), $opts->prompt_for_overwrite());
+    }
+
+    if ($opt_w ne '') {                             # save coves secondary structures for 
+       $opts->save_odd_struct(1);                   #  tRNA's whose acodons it couldn't call
+        if ($opt_w eq "#") {
+            $opts->odd_struct_file("$fafile.oddstruct");
+        }
+        else {
+            $opts->odd_struct_file($opt_w);
+        }
+        &check_output_file($opts->odd_struct_file(), $opts->prompt_for_overwrite());
+    }
+    
+    if ($opt_struct ne '') {                        # save all coves secondary structures
+        $opts->save_all_struct(1);
+        if ($opt_struct eq "#") {
+            $opts->all_struct_file("$fafile.ss");        
+        }
+        elsif (($opt_struct eq "\$") || 
+               ($opt_struct eq "-")) {              # sends structure output to stdout
+            $opts->all_struct_file("-");            #  instead of tabular output
+            if ($opts->results_to_stdout()) {
+                $opts->results_to_stdout(0);
+                $opts->out_file("/dev/null");      
+            }  
+        }
+        else {
+            $opts->all_struct_file($opt_struct);
+        }
+        &check_output_file($opts->all_struct_file(), $opts->prompt_for_overwrite());
+    }
+  
+    if ($opt_missed ne '') {                        # save only seqs without a tRNA hit
+        $opts->save_missed(1);
+        if ($opt_missed eq "#") {
+            $opts->missed_seq_file("$fafile.missed");        
+        }
+        else {
+            $opts->missed_seq_file($opt_missed);
+        }
+        &check_output_file($opts->missed_seq_file(),$opts->prompt_for_overwrite());
+    }
+
+                                                    # outputs PID number in file for 
+                                                    # tRNAscan-SE web server program
+    if ($opt_Y != 0) { 
+        &check_output_file("$fafile.pid", $opts->prompt_for_overwrite());
+        &open_for_write(\*TESTF, "$fafile.pid");
+        print TESTF "PID=$$\n";
+        close(TESTF);
+    }
+
+    if ($opt_verbose ne '') {                       # save verbose tRNAscan output
+        $opts->save_verbose(1);
+        my $tmp_verb = &tempname($temp_dir,".vb");  # get temp output file name
+        &check_output_file($tmp_verb, $opts->prompt_for_overwrite());
+        $opts->tscan_params($opts->tscan_params() . "-v $tmp_verb");
+        if ($opt_verbose eq "#") {
+            $opts->verb_file("$fafile.verb");
+        }
+        else {
+            $opts->verb_file($opt_verbose);
+        }
+        &check_output_file($opts->verb_file(),$opts->prompt_for_overwrite());
+    }
+    
+    if ($opt_filter ne '') {                        # use previous results output file
+        $opts->tscan_mode(0);
+        $opts->eufind_mode(0);
+        $opts->use_prev_ts_run(1);    
+        $opts->firstpass_result_file($opt_filter); 
+        if (!(-e $opts->firstpass_result_file())) {
+            die "FATAL: Can't find formatted tRNA output file ",
+                $opts->firstpass_result_file()."\n\n"; 
+        }  
+    }                
+    elsif ($opt_fsres ne '') {                      # create named file for first 
+        $opts->save_firstpass_res(1);               #  pass results
+        if ($opt_fsres eq "#") {
+            $opts->firstpass_result_file("$fafile.fpass.out");
+        }
+        else {
+            $opts->firstpass_result_file($opt_fsres);
+        }
+        &check_output_file($opts->firstpass_result_file(), $opts->prompt_for_overwrite());
+        &init_fp_result_file($opts->firstpass_result_file());
+    }      
+    else {                                          # create temp file for firstpass output
+        $opts->firstpass_result_file(&tempname($temp_dir, ".fpass"));
+        &check_output_file($opts->firstpass_result_file(), $opts->prompt_for_overwrite()); 
+        &init_fp_result_file($opts->firstpass_result_file());
+    }     
+      
+    if ($opt_falsepos ne '') {                      # save false positive tRNAs from 
+        $opts->save_falsepos(1);                    #  first-pass scans that Cove bonked
+        $opts->save_source(1);                      # save source of tRNA hit (-y option)
+        if ($opt_falsepos eq "#") {
+            $opts->falsepos_file("$fafile.fpos");
+        }
+        else {
+            $opts->falsepos_file($opt_falsepos);
+        }
+        &check_output_file($opts->falsepos_file(), $opts->prompt_for_overwrite());
+    }
+
+    if ($opt_len > 0) {             
+        $opts->max_int_len($opt_len);               # set MAX intron+variable loop region size
+                                                    # used in EufindtRNA & Cove
+     
+        if ($opts->use_prev_ts_run() || $opts->eufind_mode()) {
+            $opts->find_long_tRNAs(1);              # look for long tRNAs if needed
+        }
+        else {
+            $cm->max_cove_tRNA_length($opts->max_int_len() + $cm->min_tRNA_no_intron());
+        }
+    }
+    
+    if ($opt_progress != 0) {
+        $log->open_file("-") ||
+            die "FATAL: Unable to open standard out to display program progress\n\n";
+        $opts->display_progress(1);
+    }
+    elsif ($opt_log ne '') {
+        if ($opt_log eq "#") {
+            $opts->log_file("$fafile.log");
+        }
+        else {
+            $opts->log_file($opt_log);
+        }
+        &check_output_file($opts->log_file(), $opts->prompt_for_overwrite());
+        $log->open_file($opts->log_file());
+        $opts->save_progress(1);
+    }
+    else {
+        $log->open_file("/dev/null") ||
+            die "FATAL: Unable to open /dev/null to record program progress\n\n";
+    }
+    
+    if ($opt_version != 0) {                        # use alternate tRNAscan version
+        $tscan->tscan_version($opt_version);
+    }
+
+    if ($opt_score != 1000) {                       # use different Cove-score cutoff for reporting
+                                                    # "real" tRNAs
+        $cm->cm_cutoff($opt_score);                 # dummy opt_X val is 10,000 to avoid overlap 
+                                                    #  with a real value a user might specify
+    }
+    
+    if ($#ARGV == 0) {                              # only one seq file on command line
+        $opts->multiple_files(0);
+        $opts->fasta_file($ARGV[0]);
+    }
+    else {    
+        $opts->multiple_files(1);
+        my $tmp_multiseq_file = &tempname($temp_dir, ".mseq");       
+        &check_output_file($tmp_multiseq_file, $opts->prompt_for_overwrite());
+        foreach my $filename (@ARGV) {
+            system("cat $filename >> $tmp_multiseq_file");
+        }
+        $opts->fasta_file($tmp_multiseq_file);    
+    }
+
+    if ($opts->cove_mode()) {
+        $opts->second_pass_label("Cove");
+    }
+    if ($opts->infernal_mode()) {
+        $opts->second_pass_label("Infernal");
+    }
+    
+    $cm->CM_mode($opts->CM_mode());
+
+    $opts->temp_dir($temp_dir);
+}

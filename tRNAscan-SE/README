@@ -1,0 +1,102 @@
+-------------------------------------------------------------
+tRNAscan-SE: An improved tool for transfer RNA detection
+
+Patricia Chan and Todd Lowe
+
+School of Engineering, University of California, Santa Cruz, CA
+--------------------------------------------------------------
+Current release: 1.3.1 (January 2012)
+
+tRNAscan-SE was written in the PERL (version 5.0) script language.
+Input consists of DNA or RNA sequences in FASTA format. tRNA
+predictions are output in standard tabular or ACeDB format.
+tRNAscan-SE does no tRNA detection itself, but instead combines the
+strengths of three independent tRNA prediction programs by negotiating
+the flow of information between them, performing a limited amount of
+post-processing, and outputting the results in one of several
+formats.
+
+tRNAscan-SE combines the specificity of the Cove/Infernal probabilistic 
+RNA prediction package (1-2) with the speed and sensitivity of tRNAscan 1.3
+(3) plus an implementation of an algorithm described by Pavesi and
+colleagues (4), which searches for eukaryotic pol III tRNA promoters
+(our implementation referred to as EufindtRNA). tRNAscan and
+EufindtRNA are used as first-pass prefilters to identify "candidate"
+tRNA regions of the sequence. These subsequences are then passed to
+Cove for further analysis, and output if Cove confirms the initial
+tRNA prediction. In this way, tRNAscan-SE attains the best of both
+worlds: (1) a false positive rate equally low to using Cove analysis,
+(2) the combined sensitivities of tRNAscan and EufindtRNA (detection
+of 98-99% of true tRNAs), and (3) search speed 1,000 to 3,000 times
+faster than Cove analysis and 30 to 90 times faster than the original
+tRNAscan 1.3 (tRNAscan-SE uses both a code-optimized version of
+tRNAscan 1.3 which gives a 300-fold increase in speed, and a fast C
+implementation of the Pavesi et al. algorithm).
+
+This distribution includes the PERL script tRNAscan-SE, all the files
+necessary to compile and run the complete COVE package (version
+2.4.4), all the files necessary to compile and run the modified
+version of tRNAscan (version 1.4), and all the files needed to compile
+and run eufindtRNA 1.0 (the cove programs, tRNAscan 1.4, and
+eufindtRNA are included for use with the tRNAscan-SE program, but may
+also be run as stand-alone programs).  Installation of the PERL
+(Practical Extraction and Report Language, Larry Wall) interpreter
+package version 5.0 or later is required to run the tRNAscan-SE PERL
+script. An newer implementation of covariance model searches, Infernal, may
+be used in place of Cove which allows for faster searches and new, specialized
+search options. To use Infernal as the second-pass scanner or to include 
+prediction of noncanonical introns and split fragments in archaeal tRNA 
+genes, Infernal 1.0 must be pre-installed. Previous versions of Infernal
+will not work with the covariance models provided with tRNAscan-SE. 
+The Infernal source package can be downloaded at http://infernal.janelia.org/. 
+
+For more detailed information, please read the following files:
+
+  MANUAL       -- decription of program, run options & demo examples
+                  (text) 
+  Manual.ps    -- decription of program, run options & demo examples
+                  (postscript format)
+  INSTALL      -- instructions for installing the programs
+  COPYING      -- copyright notice, and information on distribution policy
+  FILES        -- overview of what the source files are
+  GNULICENSE   -- Gnu Public License, version 2 (see COPYING)
+
+
+You can obtain a copy of this software from
+http://lowelab.ucsc.edu/software/tRNAscan-SE.tar.gz
+or
+ftp://selab.janelia.org/pub/software/tRNAscan-SE.tar.Z
+
+If you use this software, please cite the Nucleic Acids Research paper
+describing the program & its analysis of several genomes (4).
+
+If you have any questions, bug reports, or suggestions, please e-mail
+
+   Todd Lowe
+   lowe@soe.ucsc.edu
+
+   Department of Biomolecular Engineering
+   University of California
+   1156 High Street
+   Santa Cruz, ZA 95064
+
+
+References
+
+1. Eddy, S.R. and Durbin, R. (1994) "RNA sequence analysis using
+   covariance models", Nucl. Acids Res., 22, 2079-2088.
+
+2. Nawrocki, E.P., Kolbe, D.L. &  Eddy, S.R. (2010) "Infernal 1.0: 
+   Inference of RNA Alignments", Bioinformatics, 25, 1335-1337.
+
+3. Fichant, G.A. and Burks, C. (1991) "Identifying potential tRNA
+   genes in genomic DNA sequences", J. Mol. Biol., 220, 659-671.
+
+4. Pavesi, A., Conterio, F., Bolchi, A., Dieci, G., Ottonello,
+   S. (1994) "Identification of new eukaryotic tRNA genes in genomic DNA
+   databases by a multistep weight matrix analysis of transcriptional
+   control regions", Nucl. Acids Res., 22, 1247-1256.
+
+5. Lowe, T.M. & Eddy, S.R. (1997) "tRNAscan-SE: A program
+   for improved detection of transfer RNA genes in genomic
+   sequence", Nucl. Acids Res., 25, 955-964.

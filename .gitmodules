@@ -1,0 +1,3 @@
+[submodule "fastpath"]
+	path = fastpath
+	url = https://github.com/deprekate/fastpath

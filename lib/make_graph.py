@@ -22,8 +22,8 @@ def score_orf(pstop, startcodon, length, nonlength, rbs):
 	# Calculated weights are:  ATG:0.0851  GTG:0.106  TTG:0.041  CTG:0.002
 	# Estimated weights are:   ATG:0.08    GTG:0.10   TTG:0.05   CTG:0.05
 	# Weights are normalized by lowest occuring start codon
-	start_weight = {'ATG':Decimal('0.64'), 'CAT':Decimal('0.64'),
-			'GTG':Decimal('0.20'), 'CAC':Decimal('0.20'), 
+	start_weight = {'ATG':Decimal('0.84'), 'CAT':Decimal('0.84'),
+			'GTG':Decimal('0.10'), 'CAC':Decimal('0.10'), 
 			'TTG':Decimal('0.05'), 'CAA':Decimal('0.05'),
 			'CTG':Decimal('0.01'), 'CAG':Decimal('0.01')}
 

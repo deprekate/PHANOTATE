@@ -2,6 +2,7 @@ import os
 import sys
 import itertools
 from decimal import Decimal
+from scipy.stats.distributions import chi2
 
 from settings import weights
 from nodes import Node
@@ -68,7 +69,7 @@ def comp(list1, list2):
 	return False
 
 def score_rbs(seq):
-	score = 0
+	score = Decimal(0)
 	bases = ['A', 'C', 'T', 'G']
 	kmers = {}
 
@@ -138,7 +139,8 @@ def score_rbs(seq):
 		score = 2
 	elif(comp(kmers['GGA']+kmers['GAG']+kmers['AGG'],range(3,5))):
 		score = 1
-	return score+1
+	score = Decimal(score+10)
+	return score.log10()
 
 def p_stop(seq):
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
@@ -151,6 +153,8 @@ def p_stop(seq):
        	return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 def ave(a):
 	return Decimal(sum(a)/len(a))
+def ave_f(a):
+	return sum(a)/len(a)
 
 def parse(dna):
 	G = Graph(directed=True)
@@ -183,11 +187,11 @@ def parse(dna):
 		codon = dna[i-1:i+2]
 		frame = states.next()
 
-		#if codon in ['ATG', 'GTG', 'TTG']:
-		if codon in ['ATG', 'GTG', 'TTG', 'CTG']:
+		if codon in ['ATG', 'GTG', 'TTG']:
+		#if codon in ['ATG', 'GTG', 'TTG', 'CTG']:
 			starts[frame].append(i)
-		#elif rev_comp(codon) in ['ATG', 'GTG', 'TTG']:
-		elif rev_comp(codon) in ['ATG', 'GTG', 'TTG', 'CTG']:
+		elif rev_comp(codon) in ['ATG', 'GTG', 'TTG']:
+		#elif rev_comp(codon) in ['ATG', 'GTG', 'TTG', 'CTG']:
 			starts[-frame].append(i)
 		elif codon in ['TAA', 'TGA', 'TAG']:
 			for start in reversed(starts[frame]):
@@ -273,52 +277,49 @@ def parse(dna):
 				stop_to_start[stop] = start
 	
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
-	positions = [Decimal(0),Decimal(0),Decimal(0),Decimal(0)]
-	frequency = [[[],[],[]],[[],[],[]],[[],[],[]],[[],[],[]]]
+	pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
+	pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 	for stop in sorted(stop_to_start):
 		start = stop_to_start[stop]
-		#frames = [[],[],[]]
-		if(start < stop and stop-start > 100):
+		tot = 0
+		if(start < stop and stop-start > 90):
 			if(start == 0):
 				start = (stop+2)%3+1
 			for base in range(start+3, min(stop, len(dna)-1), 3):
-				#frames[0].append( gc_pos_freq[base][0] )
-				#frames[1].append( gc_pos_freq[base][1] )
-				#frames[2].append( gc_pos_freq[base][2] )
-				positions[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-		elif(stop and stop < start and start-stop > 100):
+				pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
+				pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
+		elif(stop and stop < start and start-stop > 90):
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
 			for base in range(start, stop, -3):
-				#frames[0].append( gc_pos_freq[base][2] )
-				#frames[1].append( gc_pos_freq[base][1] )
-				#frames[2].append( gc_pos_freq[base][0] )
-				positions[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
-	#sys.exit()
-	#print positions
-	#print ave(frequency[3][0]), ave(frequency[3][1]), ave(frequency[3][2])
-	#print frequency[3][0]
-	#print "\n"
-	#print frequency[3][1]
-	#print "\n"
-	#print frequency[3][2]
-	#sys.exit()
+				pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
+				pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 	
-	a = positions[1]/sum(positions)
-	b = positions[2]/sum(positions)
-	c = positions[3]/sum(positions)
 
+	#print pos_min
+	#print pos_mid
+	#print pos_max
+	#sys.exit()
+	#sys.exit()
+	# normalize to one
+	y = max(pos_max)
+	pos_max[:] = [x / y for x in pos_max]	
+	y = max(pos_min)
+	pos_min[:] = [x / y for x in pos_min]	
+	
 	for edge in G.iteredges():
-		frames = [[],[],[],[]]
+		maxes = []
+		mins = []
 		if(edge.source.frame > 0):
 			start = edge.source.position
 			stop = edge.target.position
 			if(start == 0):
 				start = edge.source.frame
 			for base in range(start+3, min(stop,len(dna)-1), 3):
-				frames[1].append( gc_pos_freq[base][0] )
-				frames[2].append( gc_pos_freq[base][1] )
-				frames[3].append( gc_pos_freq[base][2] )
+				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
+				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
+				maxes.append(pos_max[ind_max])
+				mins.append(pos_min[ind_min])
 			start = edge.source.position
 		else:
 			start = edge.target.position
@@ -326,18 +327,15 @@ def parse(dna):
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
 			for base in range(start, stop, -3):
-				frames[1].append( gc_pos_freq[base][2] )
-				frames[2].append( gc_pos_freq[base][1] )
-				frames[3].append( gc_pos_freq[base][0] )
+				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
+				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
+				maxes.append(pos_max[ind_max])
+				mins.append(pos_min[ind_min])
 			start = edge.target.position
-		a0 = ave(frames[1])/(ave(frames[1])+ave(frames[2])+ave(frames[3]))
-		b0 = ave(frames[2])/(ave(frames[1])+ave(frames[2])+ave(frames[3]))
-		c0 = ave(frames[3])/(ave(frames[1])+ave(frames[2])+ave(frames[3]))
-		ls = ((a-a0)**2)+((b-b0)**2)+((c-c0)**2)+Decimal("0.0001")
-		ls = 1/ls
-		edge.weight = edge.weight * ls/100
+		edge.weight = -(abs(edge.weight) ** ave(mins))
+		edge.weight = -(abs(edge.weight) ** ave(maxes)) #Decimal(str(chi2.sf(chi_squared,1)))
 		start_to_score[start] = edge.weight
-		#print start, stop, edge.source.frame, edge.weight, ave(squares)
+
 	#-------------------------------Check for long noncoding regions that would break the path---------#
 	bases = [None] * (len(dna))
 	for edge in G.iteredges():
@@ -376,7 +374,7 @@ def parse(dna):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
 							if(r-l-3 < 0):
-								score = max(start_to_score[r], start_to_score[stop_to_start[l]])
+								score = start_to_score[r]
 							else:
 								score = score_gap(r-l-3, 'same')
 							G.add_edge(Edge(left_node, right_node, score ))	
@@ -384,7 +382,7 @@ def parse(dna):
 							if(left_node.frame != right_node.frame):
 								if(r < stop_to_start[l] and start_to_stop[r] < l):
 									if(r-l == 1):
-										score = max(start_to_score[r], start_to_score[stop_to_start[l]])
+										score = start_to_score[r]
 									else:
 										score = score_overlap(r-l+3, 'same')
 									G.add_edge(Edge(right_node, left_node, score ))	
@@ -393,14 +391,14 @@ def parse(dna):
 							if(left_node.frame != right_node.frame):
 								if(r < start_to_stop[l] and stop_to_start[r] < l):
 									if(r-l == 1):
-										score = max(start_to_score[l], start_to_score[stop_to_start[r]])
+										score = start_to_score[l]
 									else:
 										score = score_overlap(r-l+3, 'same')
 									G.add_edge(Edge(right_node, left_node, score ))	
 						else:
 				
 							if(r-l-3 < 0):
-								score = max(start_to_score[l], start_to_score[stop_to_start[r]])
+								score = start_to_score[l]
 							else:
 								score = score_gap(r-l-3, 'same')
 							G.add_edge(Edge(left_node, right_node, score ))	
@@ -419,7 +417,7 @@ def parse(dna):
 							score = score_gap(r-l-3, 'diff')
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
-							if(start_to_stop[r] < l and r < start_to_stop[l] and start_to_stop[r] < stop_to_start[start_to_stop[l]] and start_to_stop[l] > stop_to_start[start_to_stop[r]]):
+							if(start_to_stop[r] < l and r < start_to_stop[l]): # and start_to_stop[r] < stop_to_start[start_to_stop[l]] and start_to_stop[l] > stop_to_start[start_to_stop[r]]):
 								score = score_overlap(r-l+3, 'diff')
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
@@ -436,7 +434,10 @@ def parse(dna):
 			if( (node.type == 'start' and node.frame < 0) or (node.type =='stop' and node.frame > 0) ):
 				score = score_gap(len(dna)-node.position, 'same')
 				G.add_edge(Edge(node, target, score))
+
+	
 	return G
+#---------------------------------------END OF LOOP----------------------------------------------------------#
 
 def add_trnas(G):
 	trna_end_left = {}

@@ -4,7 +4,7 @@
 weights = {
 	'gap':'0.99',
 	'overlap':'0.95',
-	'switch':'0.00001',
+	'switch':'0.0001',
 	'min_orf_length':'60'
 	}
 

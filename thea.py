@@ -55,6 +55,9 @@ for id, seq in my_contigs.items():
 	output = proc.communicate()[0].rstrip()
 
 	my_path = output.split('\n')
+	#for n in my_path:
+	#	print n
+	#sys.exit()
 	#Determine whether the first edge is a gap or an fragment open reading frame
 	try:
 		node1 = eval(my_path[1])

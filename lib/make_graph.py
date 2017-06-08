@@ -160,13 +160,24 @@ def parse(dna):
 	G = Graph(directed=True)
 
 	# Check for ambiguous bases and create gc frame plot
+	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	frame_plot = GCframe()
 	for base in dna:
 		if(base not in ['A', 'C', 'T', 'G']):
 			sys.stderr.write('Error: ambiguous nucleotide base ' + base + ' found\n')
 			sys.exit()
 		frame_plot.add_base(base)
+		frequency[base] += 1
+		frequency[rev_comp(base)] += 1
 	gc_pos_freq = frame_plot.get()
+
+	length = len(dna)*2
+	Pa = frequency['A']/length
+	Pt = frequency['T']/length
+	Pg = frequency['G']/length
+	Pc = frequency['C']/length
+       	weights['gap'] = 1-(Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
+
 
 	# The dicts that will hold the start and stop codons
 	stops = {1:0, 2:0, 3:0, -1:0, -2:0, -3:0}
@@ -332,8 +343,8 @@ def parse(dna):
 				maxes.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 			start = edge.target.position
-		edge.weight = -(abs(edge.weight) ** ave(mins))
-		edge.weight = -(abs(edge.weight) ** ave(maxes)) #Decimal(str(chi2.sf(chi_squared,1)))
+		edge.weight = -1 * abs(edge.weight)**ave(mins)
+		edge.weight = -1 * abs(edge.weight)**ave(maxes)
 		start_to_score[start] = edge.weight
 
 	#-------------------------------Check for long noncoding regions that would break the path---------#

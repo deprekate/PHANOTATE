@@ -177,6 +177,7 @@ def parse(dna):
 	Pg = frequency['G']/length
 	Pc = frequency['C']/length
        	weights['gap'] = 1-(Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
+       	#weights['switch'] = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)**2
 
 
 	# The dicts that will hold the start and stop codons
@@ -292,31 +293,41 @@ def parse(dna):
 	pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 	for stop in sorted(stop_to_start):
 		start = stop_to_start[stop]
-		tot = 0
-		if(start < stop and stop-start > 90):
+		loc_pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
+		loc_pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
+		if(start < stop and stop-start > 100):
 			if(start == 0):
 				start = (stop+2)%3+1
-			for base in range(start+3, min(stop, len(dna)-1), 3):
+			#for base in range(start+3, min(stop, len(dna)-1), 3):
+			for base in range(start+33, min(stop-30, len(dna)-1), 3):
 				pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-		elif(stop and stop < start and start-stop > 90):
+			#idx_max = max_idx(loc_pos_max[1],loc_pos_max[2],loc_pos_max[3])
+			#pos_max[idx_max] += sum(loc_pos_max)
+			#idx_min = min_idx(loc_pos_min[1],loc_pos_min[2],loc_pos_min[3])
+			#pos_min[idx_min] += sum(loc_pos_min)
+		elif(stop and stop < start and start-stop > 100):
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
-			for base in range(start, stop, -3):
+			#for base in range(start, stop, -3):
+			for base in range(start-30, stop+30, -3):
 				pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
+			#idx_max = max_idx(loc_pos_max[1],loc_pos_max[2],loc_pos_max[3])
+			#pos_max[idx_max] += sum(loc_pos_max)
+			#idx_min = min_idx(loc_pos_min[1],loc_pos_min[2],loc_pos_min[3])
+			#pos_min[idx_min] += sum(loc_pos_min)
 	
 
-	#print pos_min
-	#print pos_mid
-	#print pos_max
-	#sys.exit()
 	#sys.exit()
 	# normalize to one
 	y = max(pos_max)
 	pos_max[:] = [x / y for x in pos_max]	
 	y = max(pos_min)
 	pos_min[:] = [x / y for x in pos_min]	
+	#print pos_min
+	#print pos_max
+	#sys.exit()
 	
 	for edge in G.iteredges():
 		maxes = []

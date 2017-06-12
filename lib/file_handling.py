@@ -68,7 +68,7 @@ def write_output(id, args, my_path):
 	if(outfmt == 'tabular'):
 		outfile.write("#gap:\t" + str(weights['gap']) + "\n")
 		outfile.write("#overlap:\t" + str(weights['overlap']) + "\n")
-		outfile.write("#switch:\t" + weights['switch'] + "\n")
+		outfile.write("#switch:\t" + str(weights['switch']) + "\n")
 		outfile.write("#min_orf_length:\t" + weights['min_orf_length'] + "\n")
 		for source, target in pairwise(my_path):
 			left = eval(source)

@@ -10,7 +10,6 @@ from edges import Edge
 from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
-from gc_frame_plot import mid_idx
 from gc_frame_plot import min_idx
 
 
@@ -19,20 +18,16 @@ def rev_comp(seq):
 	seq_dict = {'A':'T','T':'A','G':'C','C':'G'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
-def score_orf(pstop, startcodon, length, nonlength, rbs):
+def score_orf(pstop, startcodon, length, rbs):
 	# Calculated weights are:  ATG:0.0851  GTG:0.106  TTG:0.041  CTG:0.002
 	# Estimated weights are:   ATG:0.08    GTG:0.10   TTG:0.05   CTG:0.05
 	# Weights are normalized by lowest occuring start codon
-	start_weight = {'ATG':Decimal('4'), 'CAT':Decimal('4'),
-			'GTG':Decimal('3'), 'CAC':Decimal('3'), 
-			'TTG':Decimal('2'), 'CAA':Decimal('2'),
-			'CTG':Decimal('1'), 'CAG':Decimal('1')}
+	start_weight = {'ATG':Decimal('6'), 'CAT':Decimal('6'),
+			'GTG':Decimal('4'), 'CAC':Decimal('4'), 
+			'TTG':Decimal('0.5'), 'CAA':Decimal('0.5')}
 
 	score = (1-pstop)**(length/3)
 	score = 1/score
-	nonscore = (1-pstop)**(nonlength/3)
-	nonscore = 1/nonscore
-	score = score - nonscore
 	if(startcodon):
 		score = score * start_weight[startcodon]
 	if(rbs):
@@ -45,7 +40,7 @@ def score_overlap(length, direction):
 	score = Decimal(o)**length
 	score = 1/score
 	if(direction == 'diff'):
-		score = score + (1/s)
+		score = score*5 + (1/s)
 	return score
 
 def score_gap(length, direction):
@@ -169,14 +164,14 @@ def parse(dna):
 		frame_plot.add_base(base)
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1
-	gc_pos_freq = frame_plot.get()
+	gc_pos_freq, gc_skew = frame_plot.get()
 
 	length = len(dna)*2
 	Pa = frequency['A']/length
 	Pt = frequency['T']/length
 	Pg = frequency['G']/length
 	Pc = frequency['C']/length
-       	weights['gap'] = 1-(Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
+       	weights['gap'] = (1-(Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg))
        	#weights['switch'] = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)**2
 
 
@@ -193,6 +188,12 @@ def parse(dna):
 	#This is just a quick way to hold orf scores
 	start_to_score = {}
 
+	#This holds the good ORFs: the longest ones that start with ATG
+	training_orfs = {}
+
+	pos_to_codon = {}
+
+
 	# Reset iterator and find all the open reading frames
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
@@ -200,22 +201,25 @@ def parse(dna):
 		frame = states.next()
 
 		if codon in ['ATG', 'GTG', 'TTG']:
-		#if codon in ['ATG', 'GTG', 'TTG', 'CTG']:
 			starts[frame].append(i)
+			pos_to_codon[i] = codon	
 		elif rev_comp(codon) in ['ATG', 'GTG', 'TTG']:
-		#elif rev_comp(codon) in ['ATG', 'GTG', 'TTG', 'CTG']:
 			starts[-frame].append(i)
+			pos_to_codon[i] = rev_comp(codon)	
 		elif codon in ['TAA', 'TGA', 'TAG']:
 			for start in reversed(starts[frame]):
 				stop = i
 				length = stop-start
 				if(length >= Decimal(weights['min_orf_length'])):
+					nlength = start - starts[frame][0]
+					#if(nlength/10 > length or (start and pos_to_codon[start]=='TTG' and length < 100)):
+					if(start and pos_to_codon[start]=='TTG' and length < 100):
+						continue
 					pstop = p_stop(dna[max(0,start-1):stop])
 					startcodon = dna[start-1:start+2]
-					nonlength = 1 #start-stops[frame]
 					rbs = dna[start-21:start]
 					#score
-					score = score_orf(pstop, startcodon, length, nonlength, rbs)
+					score = score_orf(pstop, startcodon, length, rbs)
 					source = Node('CDS', 'start', frame, start)
 					target = Node('CDS', 'stop', frame, stop)
 					G.add_edge(Edge(source, target, score))
@@ -224,6 +228,8 @@ def parse(dna):
 					pstops[stop] = pstop
 					start_to_stop[start] = stop
 					stop_to_start[stop] = start
+					if(start and pos_to_codon[start] == 'ATG'):
+						training_orfs[stop] = start	
 			starts[frame] = []
 			stops[frame] = i
 		elif rev_comp(codon) in ['TAA', 'TGA', 'TAG']:
@@ -231,12 +237,14 @@ def parse(dna):
 				stop = stops[-frame]
 				length = start-stop
 				if(length >= Decimal(weights['min_orf_length'])):
+					nlength = starts[-frame][-1] - start
+					if(pos_to_codon[start]=='TTG' and length < 100):
+						continue
 					pstop = p_stop(rev_comp(dna[max(0,stop-1):start]))
 					startcodon = rev_comp(dna[start-1:start+2])
-					nonlength = 1 #i - start
 					rbs = rev_comp(dna[start+2:start+23])
 					#score
-					score = score_orf(pstop, startcodon, length, nonlength, rbs)
+					score = score_orf(pstop, startcodon, length, rbs)
 					source = Node('CDS', 'stop', -frame, stop)
 					target = Node('CDS', 'start', -frame, start)
 					G.add_edge(Edge(source, target, score))
@@ -245,8 +253,13 @@ def parse(dna):
 					pstops[stop] = pstop
 					start_to_stop[start] = stop
 					stop_to_start[stop] = start
+					if(stop and pos_to_codon[start] == 'ATG'):
+						training_orfs[stop] = start	
 			starts[-frame] = []
 			stops[-frame] = i
+	#for e in G.iteredges():
+	#	print e
+	#sys.exit()
 
 	# Add in any fragment ORFs at the end of the genome
 	for frame in [1, 2, 3]:
@@ -259,7 +272,7 @@ def parse(dna):
 				nonlength = start-stops[frame]
 				rbs = dna[start-21:start]
 				#score
-				score = score_orf(pstop, startcodon, length, nonlength, rbs)
+				score = score_orf(pstop, startcodon, length, rbs)
 				source = Node('CDS', 'start', frame, start)
 				target = Node('CDS', 'stop', frame, stop)
 				G.add_edge(Edge(source, target, score))
@@ -278,7 +291,7 @@ def parse(dna):
 				nonlength = 1
 				rbs = rev_comp(dna[start+2:start+23])
 				#score
-				score = score_orf(pstop, startcodon, length, nonlength, rbs)
+				score = score_orf(pstop, startcodon, length, rbs)
 				source = Node('CDS', 'stop', -frame, stop)
 				target = Node('CDS', 'start', -frame, start)
 				G.add_edge(Edge(source, target, score))
@@ -287,36 +300,28 @@ def parse(dna):
 				pstops[stop] = pstop
 				start_to_stop[start] = stop
 				stop_to_start[stop] = start
-	
+
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 	pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
-	for stop in sorted(stop_to_start):
-		start = stop_to_start[stop]
+	for stop in training_orfs:
+		start = training_orfs[stop]
 		loc_pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 		loc_pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 		if(start < stop and stop-start > 100):
+			n = ((stop-start)/8)*3
 			if(start == 0):
 				start = (stop+2)%3+1
-			#for base in range(start+3, min(stop, len(dna)-1), 3):
-			for base in range(start+33, min(stop-30, len(dna)-1), 3):
+			for base in range(start+3+n, min(stop-30, len(dna)-1), 3):
 				pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-			#idx_max = max_idx(loc_pos_max[1],loc_pos_max[2],loc_pos_max[3])
-			#pos_max[idx_max] += sum(loc_pos_max)
-			#idx_min = min_idx(loc_pos_min[1],loc_pos_min[2],loc_pos_min[3])
-			#pos_min[idx_min] += sum(loc_pos_min)
 		elif(stop and stop < start and start-stop > 100):
+			n = ((start-stop)/8)*3
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
-			#for base in range(start, stop, -3):
-			for base in range(start-30, stop+30, -3):
+			for base in range(start-n, stop+30, -3):
 				pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
-			#idx_max = max_idx(loc_pos_max[1],loc_pos_max[2],loc_pos_max[3])
-			#pos_max[idx_max] += sum(loc_pos_max)
-			#idx_min = min_idx(loc_pos_min[1],loc_pos_min[2],loc_pos_min[3])
-			#pos_min[idx_min] += sum(loc_pos_min)
 	
 
 	#sys.exit()
@@ -337,7 +342,7 @@ def parse(dna):
 			stop = edge.target.position
 			if(start == 0):
 				start = edge.source.frame
-			for base in range(start+3, min(stop,len(dna)-1), 3):
+			for base in range(start+3+30, min(stop-30,len(dna)-1), 3):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				maxes.append(pos_max[ind_max])
@@ -348,16 +353,25 @@ def parse(dna):
 			stop = edge.source.position
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
-			for base in range(start, stop, -3):
+			for base in range(start-30, stop+30, -3):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				maxes.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 			start = edge.target.position
+		#print start, stop, edge.weight, ave(mins), ave(maxes)
 		edge.weight = -1 * abs(edge.weight)**ave(mins)
 		edge.weight = -1 * abs(edge.weight)**ave(maxes)
 		start_to_score[start] = edge.weight
-
+	#for edge in G.iteredges():
+	#	print edge
+	#sys.exit()
+	#for node in G.iternodes():
+	#	if(node.type == 'stop'):
+	#		print node.position
+	#		for edge in G.iterinedges(node):
+	#			print edge
+	#sys.exit()
 	#-------------------------------Check for long noncoding regions that would break the path---------#
 	bases = [None] * (len(dna))
 	for edge in G.iteredges():
@@ -390,39 +404,27 @@ def parse(dna):
 		for left_node in G.iternodes():
 			l = left_node.position
 			if(0 < r-l < 300):
-				weights['overlap'] = 1-(pstops[l]+pstops[r])/2-Decimal('0.01')
+				weights['overlap'] = (1-(pstops[l]+pstops[r])/2).sqrt() #+Decimal('0.02')
 				# same directions
 				if(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
-							if(r-l-3 < 0):
-								score = start_to_score[r]
-							else:
-								score = score_gap(r-l-3, 'same')
+							score = score_gap(r-l-3, 'same')
 							G.add_edge(Edge(left_node, right_node, score ))	
 						else:
 							if(left_node.frame != right_node.frame):
 								if(r < stop_to_start[l] and start_to_stop[r] < l):
-									if(r-l == 1):
-										score = start_to_score[r]
-									else:
-										score = score_overlap(r-l+3, 'same')
+									score = score_overlap(r-l+3, 'same')
 									G.add_edge(Edge(right_node, left_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='stop'):
 						if(left_node.frame > 0):
 							if(left_node.frame != right_node.frame):
 								if(r < start_to_stop[l] and stop_to_start[r] < l):
-									if(r-l == 1):
-										score = start_to_score[l]
-									else:
-										score = score_overlap(r-l+3, 'same')
+									score = score_overlap(r-l+3, 'same')
 									G.add_edge(Edge(right_node, left_node, score ))	
 						else:
 				
-							if(r-l-3 < 0):
-								score = start_to_score[l]
-							else:
-								score = score_gap(r-l-3, 'same')
+							score = score_gap(r-l-3, 'same')
 							G.add_edge(Edge(left_node, right_node, score ))	
 				# different directions
 				else:
@@ -458,6 +460,9 @@ def parse(dna):
 				G.add_edge(Edge(node, target, score))
 
 	
+	#for e in G.iteredges():
+	#	print e
+	#sys.exit()
 	return G
 #---------------------------------------END OF LOOP----------------------------------------------------------#
 

@@ -1,3 +1,4 @@
+from __future__ import division
 from collections import deque
 from decimal import Decimal
 import sys
@@ -14,21 +15,6 @@ def max_idx(a, b, c):
 			return 2;
 		else:
 			return 3;
-def mid_idx(a, b, c):
-	if(a > b):
-		if(b > c):
-			return 2;
-		elif(a > c):
-			return 3;
-		else:
-			return 1;
-	else:
-		if(a > c):
-			return 1;
-		elif(b > c):
-			return 3;
-		else:
-			return 2;
 def min_idx(a, b, c):
 	if(a > b):
 		if(b > c):
@@ -42,15 +28,15 @@ def min_idx(a, b, c):
 			return 1;
 class GCframe:
 	def __init__(self, window = 120):
-		self.window = window/3
+		self.window = window//3
 		self.states = itertools.cycle([1, 2, 3])
 		self.bases = [None]*4
-		#self.bases[0] = deque(['-']*self.window)
+		self.bases[0] = deque(['-']*(self.window*3))
 		self.bases[1] = deque(['-']*self.window)
 		self.bases[2] = deque(['-']*self.window)
 		self.bases[3] = deque(['-']*self.window)
 		self.frequency = [None]*4
-		#self.frequency[0] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
+		self.frequency[0] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
@@ -64,7 +50,9 @@ class GCframe:
 		#self.frequency[0][base] += 1
 		#item = self.bases[0].popleft()
 		#self.frequency[0][item] -= 1
-		#self.total[0].append(self.frequency[frame]['G'] + self.frequency[frame]['C'])
+		#Fat = (self.frequency[0]['A']+self.frequency[0]['T'])/2.0
+		#Fgc = (self.frequency[0]['G']+self.frequency[0]['C'])/2.0
+		#self.total[0].append((3*Fat+4*Fat*Fgc)/1728000)
 		##these are for gc frame plots
 		self.bases[frame].append(base)
 		self.frequency[frame][base] += 1
@@ -72,12 +60,15 @@ class GCframe:
 		self.frequency[frame][item] -= 1
 		self.total[frame].append(self.frequency[frame]['G'] + self.frequency[frame]['C'])
 
-	def middle(a, b, c):
-		return min(max(a,b),max(b,c),max(a,c))
 
 	def _close(self):
 		# get rid of the first half of the window
-		for _ in range(self.window/2):
+		#for _ in range((self.window*3)//2):
+		#		self.total[0].popleft()
+		#		item = self.bases[0].popleft()
+		#		self.frequency[0][item] -= 1
+		#		self.total[0].append(self.frequency[0]['G'] + self.frequency[0]['C'])
+		for _ in range(self.window//2):
 			for frame in [1,2,3]:
 				self.total[frame].popleft()
 				item = self.bases[frame].popleft()
@@ -97,5 +88,5 @@ class GCframe:
 			self.freq.append( [self.total[2][i],self.total[3][i],self.total[1][i+1]] )
 		if(i < len(self.total[2])-1):
 			self.freq.append( [self.total[3][i],self.total[1][i+1],self.total[2][i+1]] )
-		return self.freq
+		return self.freq, self.total[0]
 

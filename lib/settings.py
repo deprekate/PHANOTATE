@@ -5,6 +5,6 @@ weights = {
 	'gap':'0.99',
 	'overlap':'0.95',
 	'switch':'0.001',
-	'min_orf_length':'60'
+	'min_orf_length':'70'
 	}
 

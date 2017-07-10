@@ -51,7 +51,7 @@ for id, seq in my_contigs.items():
 		sys.exit()
 	for e in my_graph.iteredges():
 		proc.stdin.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")
-		sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")
+		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")
 	#sys.exit()
 	output = proc.communicate()[0].rstrip()
 

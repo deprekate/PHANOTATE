@@ -5,6 +5,7 @@ from decimal import Decimal
 from scipy.stats.distributions import chi2
 
 from settings import weights
+from settings import start_weight
 from nodes import Node
 from edges import Edge
 from graphs import Graph
@@ -19,13 +20,6 @@ def rev_comp(seq):
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
 def score_orf(pstop, startcodon, length, rbs):
-	# Calculated weights are:  ATG:0.0851  GTG:0.106  TTG:0.041  CTG:0.002
-	# Estimated weights are:   ATG:0.08    GTG:0.10   TTG:0.05   CTG:0.05
-	# Weights are normalized by lowest occuring start codon
-	start_weight = {'ATG':Decimal('6'), 'CAT':Decimal('6'),
-			'GTG':Decimal('4'), 'CAC':Decimal('4'), 
-			'TTG':Decimal('0.5'), 'CAA':Decimal('0.5')}
-
 	score = (1-pstop)**(length/3)
 	score = 1/score
 	if(startcodon):
@@ -34,13 +28,15 @@ def score_orf(pstop, startcodon, length, rbs):
 		score = score * score_rbs(rbs)
 	return -score
 
-def score_overlap(length, direction):
+def score_overlap(length, direction, factor=1):
 	o = Decimal(weights['overlap'])
 	s = Decimal(weights['switch'])
+
 	score = Decimal(o)**length
 	score = 1/score
+	#score = score*factor
 	if(direction == 'diff'):
-		score = score*5 + (1/s)
+		score = 2*abs(score)*factor + (1/s)
 	return score
 
 def score_gap(length, direction):
@@ -49,7 +45,7 @@ def score_gap(length, direction):
 	score = Decimal(g)**length
 	score = 1/score
 	if(direction == 'diff'):
-		score = score + (1/s)
+		score = abs(score) + (1/s)
 	return score
 
 def push(dict, key, value):
@@ -192,6 +188,7 @@ def parse(dna):
 	training_orfs = {}
 
 	pos_to_codon = {}
+	start_to_rbs = {}
 
 
 	# Reset iterator and find all the open reading frames
@@ -228,6 +225,7 @@ def parse(dna):
 					pstops[stop] = pstop
 					start_to_stop[start] = stop
 					stop_to_start[stop] = start
+					start_to_rbs[start] = score_rbs(rbs)
 					if(start and pos_to_codon[start] == 'ATG'):
 						training_orfs[stop] = start	
 			starts[frame] = []
@@ -253,6 +251,7 @@ def parse(dna):
 					pstops[stop] = pstop
 					start_to_stop[start] = stop
 					stop_to_start[stop] = start
+					start_to_rbs[start] = score_rbs(rbs)
 					if(stop and pos_to_codon[start] == 'ATG'):
 						training_orfs[stop] = start	
 			starts[-frame] = []
@@ -281,6 +280,7 @@ def parse(dna):
 				pstops[stop] = pstop
 				start_to_stop[start] = stop
 				stop_to_start[stop] = start
+				start_to_rbs[start] = score_rbs(rbs)
 		starts[-frame].append(i+3)	
 		for start in starts[-frame]:
 			stop = stops[-frame]
@@ -300,6 +300,7 @@ def parse(dna):
 				pstops[stop] = pstop
 				start_to_stop[start] = stop
 				stop_to_start[stop] = start
+				start_to_rbs[start] = score_rbs(rbs)
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
@@ -404,7 +405,7 @@ def parse(dna):
 		for left_node in G.iternodes():
 			l = left_node.position
 			if(0 < r-l < 300):
-				weights['overlap'] = (1-(pstops[l]+pstops[r])/2).sqrt() #+Decimal('0.02')
+				weights['overlap'] = (1-(pstops[l]+pstops[r])/2).sqrt() #+Decimal('0.01')
 				# same directions
 				if(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
@@ -441,8 +442,9 @@ def parse(dna):
 							score = score_gap(r-l-3, 'diff')
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
-							if(start_to_stop[r] < l and r < start_to_stop[l]): # and start_to_stop[r] < stop_to_start[start_to_stop[l]] and start_to_stop[l] > stop_to_start[start_to_stop[r]]):
-								score = score_overlap(r-l+3, 'diff')
+							if(start_to_stop[r] < l and r < start_to_stop[l]):
+								factor = ave([start_weight[pos_to_codon[l]]*start_to_rbs[l], start_weight[pos_to_codon[r]]*start_to_rbs[r]])+2
+								score = score_overlap(r-l+3, 'diff', factor)
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
 	source = Node('source', 'source', 0, 0)

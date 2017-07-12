@@ -90,7 +90,7 @@ def write_output(id, args, my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.position == 0):
-				left.position = '<1'
+				left.position = '<' + str(((right.position+2)%3)+1)
 			if(right.position == last_node.position):
 				right.position = '>' + str(right.position-1)
 			else:

@@ -31,12 +31,12 @@ class GCframe:
 		self.window = window//3
 		self.states = itertools.cycle([1, 2, 3])
 		self.bases = [None]*4
-		self.bases[0] = deque(['-']*(self.window*3))
+		#self.bases[0] = deque(['-']*(self.window*3))
 		self.bases[1] = deque(['-']*self.window)
 		self.bases[2] = deque(['-']*self.window)
 		self.bases[3] = deque(['-']*self.window)
 		self.frequency = [None]*4
-		self.frequency[0] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
+		#self.frequency[0] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
 		self.frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
@@ -88,5 +88,5 @@ class GCframe:
 			self.freq.append( [self.total[2][i],self.total[3][i],self.total[1][i+1]] )
 		if(i < len(self.total[2])-1):
 			self.freq.append( [self.total[3][i],self.total[1][i+1],self.total[2][i+1]] )
-		return self.freq, self.total[0]
+		return self.freq
 

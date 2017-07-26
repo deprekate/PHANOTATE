@@ -281,7 +281,6 @@ def parse(dna):
 				source = Node('CDS', 'start', frame, start)
 				target = Node('CDS', 'stop', frame, stop)
 				G.add_edge(Edge(source, target, score))
-				print frame, start, i, score
 
 				pstops[start] = pstop
 				pstops[stop] = pstop

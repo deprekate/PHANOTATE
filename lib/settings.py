@@ -5,7 +5,7 @@ from decimal import Decimal
 weights = {
 	'gap':'0.99',
 	'overlap':'0.95',
-	'switch':'0.01',
+	'switch':'0.05',
 	'min_orf_length':'90'
 	}
 

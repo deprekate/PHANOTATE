@@ -20,7 +20,7 @@ def rev_comp(seq):
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
 def score_orf(pstop, startcodon, length, rbs):
-	score = (1-pstop)**((length-6)/3)
+	score = (1-pstop)**(length/3)
 	score = 1/score
 	if(startcodon):
 		score = score * start_weight[startcodon]
@@ -77,7 +77,7 @@ def score_rbs(seq):
 	push(kmers, seq[-4:len(seq)], 0)
 	push(kmers, seq[-5:len(seq)], 0)
 
-	#These are motifs/scores taken directly from Prodigal
+	#These are motifs/scores taken from Prodigal
 	if(comp(kmers['AGGAGG'],range(4,11))):
 		score = 27
 	elif(comp(kmers['AGGAGG'],range(3,5))):
@@ -204,7 +204,7 @@ def parse(dna):
 		elif codon in ['TAA', 'TGA', 'TAG']:
 			for start in reversed(starts[frame]):
 				stop = i
-				length = stop-start
+				length = stop-start+3
 				if(length >= Decimal(weights['min_orf_length'])):
 					nlength = start - starts[frame][0]
 					pstop = p_stop(dna[max(0,start-1):stop])
@@ -228,7 +228,7 @@ def parse(dna):
 		elif rev_comp(codon) in ['TAA', 'TGA', 'TAG']:
 			for start in starts[-frame]:
 				stop = stops[-frame]
-				length = start-stop
+				length = start-stop+3
 				if(length >= Decimal(weights['min_orf_length'])):
 					nlength = starts[-frame][-1] - start
 					pstop = p_stop(rev_comp(dna[max(0,stop-1):start]))
@@ -249,7 +249,7 @@ def parse(dna):
 						training_orfs[stop] = start	
 			starts[-frame] = []
 			stops[-frame] = i
-	
+
 	# Add in any fragment ORFs at the end of the genome
 	for frame in [1, 2, 3]:
 		for start in reversed(starts[frame]):
@@ -312,7 +312,6 @@ def parse(dna):
 			for base in range(start+3+n, min(stop-33, len(dna)-1), 3):
 				pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-				
 		elif(stop and stop < start and start-stop):
 			n = ((start-stop)/8)*3
 			if(start >= len(dna)):
@@ -326,9 +325,6 @@ def parse(dna):
 	pos_max[:] = [x / y for x in pos_max]	
 	y = max(pos_min)
 	pos_min[:] = [x / y for x in pos_min]	
-	#print pos_min
-	#print pos_max
-	#sys.exit()
 	
 	for edge in G.iteredges():
 		maxes = []
@@ -355,12 +351,10 @@ def parse(dna):
 				maxes.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 			start = edge.target.position
-		#print start, stop, ave(mins), ave(maxes)
 		edge.weight = -1 * abs(edge.weight)**ave(mins)
 		edge.weight = -1 * abs(edge.weight)**ave(maxes)
 		start_to_score[start] = edge.weight
 
-	#sys.exit()
 	#-------------------------------Check for long noncoding regions that would break the path---------#
 	bases = [None] * (len(dna))
 	for edge in G.iteredges():

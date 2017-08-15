@@ -74,16 +74,16 @@ def write_output(id, args, my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t+\n')
+				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t+\t' + id[1:] + '\t\n')
 			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t-\n')
+				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t-\t' + id[1:] + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
 		outfile.write('LOCUS       UNKNOWN')
 		outfile.write(str(last_node.position-1).rjust(10))
 		outfile.write(' bp    DNA             PHG\n')
-		outfile.write('DEFINITION  ' + id + '\n')
+		outfile.write('DEFINITION  ' + id[1:] + '\n')
 		outfile.write('FEATURES             Location/Qualifiers\n')
 		outfile.write('     source          1..' + str(last_node.position-1) + '\n')
 		for source, target in pairwise(my_path):
@@ -101,7 +101,6 @@ def write_output(id, args, my_path):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
-				#outfile.write('                     /color=100 100 100\n')
 		outfile.write('//\n')
 
 

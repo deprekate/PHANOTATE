@@ -10,5 +10,5 @@ weights = {
 	}
 
 start_weight = {'ATG':Decimal('1'), 'CAT':Decimal('1'),
-		'GTG':Decimal('0.5'), 'CAC':Decimal('0.5'), 
+		'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'), 
 		'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}

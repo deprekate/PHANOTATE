@@ -12,9 +12,9 @@ from nodes import Node
 from settings import weights
 
 # Test if FastPath was compliled
-#if(not os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz'):
-#		sys.stderr.write("Error: fastpathz binary not found, did you type 'make'?\n")
-#		sys.exit()
+if(not os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz'):
+		sys.stderr.write("Error: fastpathz binary not found, did you type 'make'?\n")
+		sys.exit()
 #--------------------------------------------------------------------------------------------------#
 #                               ARGUEMENTS                                                         #
 #--------------------------------------------------------------------------------------------------#

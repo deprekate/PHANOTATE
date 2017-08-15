@@ -1,3 +1,3 @@
 all:
 	cd fastpath && $(MAKE)
-	#$(MAKE) -C tRNAscan-SE
+	$(MAKE) -C tRNAscan-SE

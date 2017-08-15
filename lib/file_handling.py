@@ -66,6 +66,7 @@ def write_output(id, args, my_path):
 	outfile = args.outfile
 
 	if(outfmt == 'tabular'):
+		last_node = eval(my_path[-1])
 		outfile.write("#gap:\t" + str(weights['gap']) + "\n")
 		outfile.write("#overlap:\t" + str(weights['overlap']) + "\n")
 		outfile.write("#switch:\t" + str(weights['switch']) + "\n")
@@ -73,10 +74,16 @@ def write_output(id, args, my_path):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
+			if(left.position == 0):
+				left.position = '<' + str(((right.position+2)%3)+1)
+			if(right.position == last_node.position):
+				right.position = '>' + str(right.position-1)
+			else:
+				right.position += 2
 			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t+\t' + id[1:] + '\t\n')
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t\n')
 			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t-\t' + id[1:] + '\t\n')
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])

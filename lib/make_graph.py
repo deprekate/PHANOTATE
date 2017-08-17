@@ -163,8 +163,6 @@ def parse(dna):
 	for base in dna:
 		if(base not in ['A', 'C', 'T', 'G']):
 			continue
-		#	sys.stderr.write('Error: ambiguous nucleotide base ' + base + ' found\n')
-		#	sys.exit()
 		frame_plot.add_base(base)
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1

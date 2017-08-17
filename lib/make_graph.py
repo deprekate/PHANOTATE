@@ -357,8 +357,12 @@ def parse(dna):
 				maxes.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 			start = edge.target.position
-		edge.weight = -1 * abs(edge.weight)**ave(mins)
-		edge.weight = -1 * abs(edge.weight)**ave(maxes)
+		if(edge.weight < -1):
+			edge.weight = -1 * abs(edge.weight)**ave(mins)
+			edge.weight = -1 * abs(edge.weight)**ave(maxes)
+		else:
+			edge.weight = -1 * abs(edge.weight)**(1/ave(mins))
+			edge.weight = -1 * abs(edge.weight)**(1/ave(maxes))
 		start_to_score[start] = edge.weight
 
 	#-------------------------------Check for long noncoding regions that would break the path---------#

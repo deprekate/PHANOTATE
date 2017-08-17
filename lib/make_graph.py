@@ -16,7 +16,10 @@ from gc_frame_plot import min_idx
 
 
 def rev_comp(seq):
-	seq_dict = {'A':'T','T':'A','G':'C','C':'G'}
+	seq_dict = {'A':'T','T':'A','G':'C','C':'G',
+		    'N':'N',
+		    'R':'Y','Y':'R','S':'S','W':'W','K':'M','M':'K',
+		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
 def score_orf(pstop, startcodon, length, rbs):
@@ -134,10 +137,14 @@ def score_rbs(seq):
 		score = 1
 	score = Decimal(score+10)
 	return score.log10()
+def convert_ambiguous(base):
+	return 1
 
 def p_stop(seq):
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	for base in seq:
+		if(base not in ['A', 'C', 'T', 'G']):
+			continue
 		frequency[base] += 1
 	Pa = frequency['A']/len(seq)
 	Pt = frequency['T']/len(seq)
@@ -155,8 +162,9 @@ def parse(dna):
 	frame_plot = GCframe()
 	for base in dna:
 		if(base not in ['A', 'C', 'T', 'G']):
-			sys.stderr.write('Error: ambiguous nucleotide base ' + base + ' found\n')
-			sys.exit()
+			continue
+		#	sys.stderr.write('Error: ambiguous nucleotide base ' + base + ' found\n')
+		#	sys.exit()
 		frame_plot.add_base(base)
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1

@@ -8,6 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+'/lib')
 import make_graph
 import file_handling
+from edges import Edge
 from nodes import Node
 from settings import weights
 
@@ -41,6 +42,7 @@ for id, seq in my_contigs.items():
 
 	#-------------------------------Create the Graph-------------------------------------------#
 	my_graph = make_graph.parse(seq)
+
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(len(seq)+1) + ")"
@@ -54,11 +56,8 @@ for id, seq in my_contigs.items():
 		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")
 	#sys.exit()
 	output = proc.communicate()[0].rstrip()
-
 	my_path = output.split('\n')
-	#for n in my_path:
-	#	print n
-	#sys.exit()
+	
 	#Determine whether the first edge is a gap or an fragment open reading frame
 	try:
 		node1 = eval(my_path[1])
@@ -78,7 +77,7 @@ for id, seq in my_contigs.items():
  
 
 	#-------------------------------Write Output ----------------------------------------------#
-	file_handling.write_output(id, args, my_path)
+	file_handling.write_output(id, args, my_path, my_graph)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

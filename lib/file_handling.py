@@ -1,10 +1,9 @@
 import sys
 import os.path
 import itertools
-import settings
+
 from edges import Edge
 from nodes import Node
-from settings import weights
 from math import log
 import argparse
 from argparse import RawTextHelpFormatter
@@ -63,6 +62,20 @@ def read_fasta(filepath):
 
 	if '' in my_contigs: del my_contigs['']
 	return my_contigs
+def k_means(list):
+	means = [0, 10]
+	param = Decimal('0.01')
+
+	for x in list:
+		closest_k = Decimal(0);
+		smallest_error = Decimal('1E+40') 
+		for k in enumerate(means):
+			error = abs(x-k[1])
+			if error < smallest_error:
+				smallest_error = error
+				closest_k = k[0]
+			means[closest_k] = means[closest_k]*(1-param) + x*(param)
+	return means
 
 def write_output(id, args, my_path, my_graph):
 	outfmt = args.outfmt
@@ -71,27 +84,22 @@ def write_output(id, args, my_path, my_graph):
 	if(outfmt == 'tabular'):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
-		outfile.write("#gap:\t" + str(weights['gap']) + "\n")
-		outfile.write("#overlap:\t" + str(weights['overlap']) + "\n")
-		outfile.write("#switch:\t" + str(weights['switch']) + "\n")
-		outfile.write("#min_orf_length:\t" + weights['min_orf_length'] + "\n")
+		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			weight = my_graph.weight(Edge(left,right,0))
-			#cutoff = log(1/(weights['gap']**30))
-			#if(weight > -cutoff):
-			#	continue
-			if(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(right.position-1)
-			else:
-				right.position += 2
-			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			if(left.gene == 'CDS'):
+				if(left.position == 0):
+					left.position = '<' + str(((right.position+2)%3)+1)
+				if(right.position == last_node.position):
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+				else:
+					right.position += 2
+				if(left.type == 'start' and right.type == 'stop'):
+					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				elif(left.type == 'stop' and right.type == 'start'):
+					outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
@@ -110,8 +118,7 @@ def write_output(id, args, my_path, my_graph):
 				right.position = '>' + str(right.position-1)
 			else:
 				right.position += 2
-
-			outfile.write('     CDS             ')
+			outfile.write('     ' + left.gene.ljust(17))
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):

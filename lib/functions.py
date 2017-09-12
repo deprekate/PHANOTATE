@@ -168,8 +168,8 @@ def get_orfs(dna):
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1
 		#kmers for rbs
-		#background_rbs[score_rbs(dna[i:i+21])] += 1
-		#background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
+		background_rbs[score_rbs(dna[i:i+21])] += 1
+		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
 

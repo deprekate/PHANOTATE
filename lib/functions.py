@@ -33,7 +33,6 @@ def score_orf(pstop, startcodon, length):
 def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
 	s = Decimal('0.05')
-
 	score = Decimal(o)**Decimal(length)
 	score = 1/score
 	if(direction == 'diff'):
@@ -325,7 +324,6 @@ def get_orfs(dna):
 	for orf in my_orfs.iter_orfs():
 		orf.score()
 		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.gcfp_min, orf.gcfp_max, orf.weight
-	#sys.exit()
 
 	return my_orfs
 
@@ -382,7 +380,7 @@ def get_graph(my_orfs):
 			last = base
 	#-------------------------------Add in tRNA data---------------------------------------------------#
 	
-	#add_trnas(my_orfs.seq, G, start_to_stop, stop_to_start)
+	#add_trnas(my_orfs, G)
 	
 	#-------------------------------Connect the open reading frames to each other----------------------#
 	for right_node in G.iternodes():
@@ -458,13 +456,13 @@ def get_graph(my_orfs):
 	return G
 #---------------------------------------END OF LOOP----------------------------------------------------------#
 
-def add_trnas(seq, G, start_to_stop, stop_to_start):
+def add_trnas(my_orfs, G):
 	trna_end_left = {}
 	trna_end_right = {}
 
 	f = tempfile.NamedTemporaryFile()
 	f.write(">temp\n")
-	f.write(seq)
+	f.write(my_orfs.seq)
 	f.seek(0)
 
 	try:
@@ -486,7 +484,7 @@ def add_trnas(seq, G, start_to_stop, stop_to_start):
 			source = Node('tRNA', 'start', -4, start)
 			target = Node('tRNA', 'stop', -4, stop)
 		G.add_edge(Edge(source, target, -Decimal(100)))
-		start_to_stop[start] = stop
-		stop_to_start[stop] = start
+		my_orfs.other_end[start] = stop
+		my_orfs.other_end[stop] = start
 
 

@@ -457,9 +457,6 @@ def get_graph(my_orfs):
 #---------------------------------------END OF LOOP----------------------------------------------------------#
 
 def add_trnas(my_orfs, G):
-	trna_end_left = {}
-	trna_end_right = {}
-
 	f = tempfile.NamedTemporaryFile()
 	f.write(">temp\n")
 	f.write(my_orfs.seq)
@@ -484,7 +481,7 @@ def add_trnas(my_orfs, G):
 			source = Node('tRNA', 'start', -4, start)
 			target = Node('tRNA', 'stop', -4, stop)
 		G.add_edge(Edge(source, target, -Decimal(100)))
-		my_orfs.other_end[start] = stop
-		my_orfs.other_end[stop] = start
+		#my_orfs.other_end[start] = stop
+		#my_orfs.other_end[stop] = start
 
 

@@ -34,12 +34,6 @@ def get_args():
 
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
 	parser.add_argument('-f', '--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank'])
-	parser.add_argument('-m', '--min_orf_len', action="store", default=60, dest="min_orf_len", type=int, help='the minimum open reading frame length [60]')
-
-	parser.add_argument('--overlap_penalty', action="store", dest="overlap_penalty", type=float, choices=[Range(0.0,1.0)], help='')
-	parser.add_argument('--gap_penalty', action="store", dest="gap_penalty", type=float, choices=[Range(0.0,1.0)], help='')
-	parser.add_argument('--switch_penalty', action="store", dest="switch_penalty", type=float, choices=[Range(0.0,1.0)], help='')
-
 
 	args = parser.parse_args()
 

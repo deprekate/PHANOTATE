@@ -23,16 +23,10 @@ def rev_comp(seq):
 		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
-def score_orf(pstop, startcodon, length):
-	score = (1-pstop)**(length/3)
-	score = 1/score
-	if(startcodon):
-		score = score * start_weight[startcodon]
-	return -score
-
 def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
 	s = Decimal('0.05')
+
 	score = Decimal(o)**Decimal(length)
 	score = 1/score
 	if(direction == 'diff'):
@@ -63,74 +57,94 @@ def comp(list1, list2):
 	return False
 
 def score_rbs(seq):
+	s = seq[::-1]
 	score = 0
-	kmers = dict()
 
-	for length in range(3,7):
-		for p in itertools.product('ACTG', repeat=length):
-			kmers["".join(p)] = []
-	
-	for n in range(0,len(seq)-5):
-		for x in range(3, 7):
-			push(kmers, seq[n:n+x], len(seq)-n-x)
-	push(kmers, seq[-3:len(seq)], 0)
-	push(kmers, seq[-4:len(seq)], 0)
-	push(kmers, seq[-5:len(seq)], 0)
-
-	#These are motifs/scores taken from Prodigal
-	if(comp(kmers['AGGAGG'],range(5,11))):
+	if 'GGAGGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
 		score = 27
-	elif(comp(kmers['AGGAGG'],range(3,5))):
+	elif 'GGAGGA' in (s[3:9],s[4:10]):
 		score = 26
-	elif(comp(kmers['AGGAGG'],range(11,13))):
+	elif 'GGAGGA' in (s[11:17],s[12:18]):
 		score = 25
-	elif(comp(kmers['GGAGG'],range(5,11))):
+	elif 'GGAGG' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
 		score = 24
-	elif(comp(kmers['GGAGG'],range(3,5))):
+	elif 'GGAGG' in (s[3:8],s[4:9]):
 		score = 23
-	elif(comp(kmers['AGGAG'],range(5,11))):
+	elif 'GAGGA' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
 		score = 22
-	elif(comp(kmers['AGGAG'],range(3,5))):
+	elif 'GAGGA' in (s[3:8],s[4:9]):
 		score = 21
-	elif(comp(kmers['AGGAG']+kmers['GGAGG'],range(3,5))):
+	elif 'GAGGA' in (s[11:16],s[12:17]) or 'GGAGG' in (s[11:16],s[12:17]):
 		score = 20
-	elif(comp(kmers['AGAAGG']+kmers['AGTAGG']+kmers['AGCAGG']+kmers['AGGTGG']+kmers['AGGCGG']+kmers['AGGGGG'],range(5,11))):
+	elif 'GGACGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
 		score = 19
-	elif(comp(kmers['AGAAGG']+kmers['AGTAGG']+kmers['AGCAGG']+kmers['AGGTGG']+kmers['AGGCGG']+kmers['AGGGGG'],range(3,5))):
+	elif 'GGATGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
+		score = 19
+	elif 'GGAAGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
+		score = 19
+	elif 'GGCGGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
+		score = 19
+	elif 'GGGGGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
+		score = 19
+	elif 'GGTGGA' in (s[5:11],s[6:12],s[7:13],s[8:14],s[9:15],s[10:16]):
+		score = 19
+	elif 'GGAAGA' in (s[3:9],s[4:10]) or 'GGATGA' in (s[3:9],s[4:10]) or 'GGACGA' in (s[3:9],s[4:10]):
 		score = 18
-	elif(comp(kmers['AGAAGG']+kmers['AGTAGG']+kmers['AGCAGG']+kmers['AGGTGG']+kmers['AGGCGG']+kmers['AGGGGG'],range(11,13))):
+	elif 'GGTGGA' in (s[3:9],s[4:10]) or 'GGGGGA' in (s[3:9],s[4:10]) or 'GGCGGA' in (s[3:9],s[4:10]):
+		score = 18
+	elif 'GGAAGA' in (s[11:17],s[12:18]) or 'GGATGA' in (s[11:17],s[12:18]) or 'GGACGA' in (s[11:17],s[12:18]):
 		score = 17
-	elif(comp(kmers['GGAG']+kmers['GAGG'],range(5,11))):
+	elif 'GGTGGA' in (s[11:17],s[12:18]) or 'GGGGGA' in (s[11:17],s[12:18]) or 'GGCGGA' in (s[11:17],s[12:18]):
+		score = 17
+	elif 'GGAG' in (s[5:9],s[6:10],s[7:11],s[8:12],s[9:13],s[10:14]):
 		score = 16
-	elif(comp(kmers['AGGA'],range(5,11))):
+	elif 'GAGG' in (s[5:9],s[6:10],s[7:11],s[8:12],s[9:13],s[10:14]):
+		score = 16
+	elif 'AGGA' in (s[5:9],s[6:10],s[7:11],s[8:12],s[9:13],s[10:14]):
 		score = 15
-	elif(comp(kmers['GGTGG']+kmers['GGCGG']+kmers['GGGGG'],range(5,11))):
+	elif 'GGTGG' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
 		score = 14
-	elif(comp(kmers['GGA']+kmers['GAG']+kmers['AGG'],range(5,11))):
+	elif 'GGGGG' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
+		score = 14
+	elif 'GGCGG' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
+		score = 14
+	elif 'AGG' in (s[5:8],s[6:9],s[7:10],s[8:11],s[9:12],s[10:13]):
 		score = 13
-	elif(comp(kmers['AGGA']+kmers['GGAG']+kmers['GAGG'],range(11,13))):
+	elif 'GAG' in (s[5:8],s[6:9],s[7:10],s[8:11],s[9:12],s[10:13]):
+		score = 13
+	elif 'GGA' in (s[5:8],s[6:9],s[7:10],s[8:11],s[9:12],s[10:13]):
+		score = 13
+	elif 'AGGA' in (s[11:15],s[12:16]) or 'GAGG' in (s[11:15],s[12:16]) or 'GGAG' in (s[11:15],s[12:16]):
 		score = 12
-	elif(comp(kmers['AGGA']+kmers['GGAG']+kmers['GAGG'],range(3,5))):
+	elif 'AGGA' in (s[3:7],s[4:8]) or 'GAGG' in (s[3:7],s[4:8]) or 'GGAG' in (s[3:7],s[4:8]):
 		score = 11
-	elif(comp(kmers['AGGAG']+kmers['GGAGG']+kmers['AGGAGG'],range(13,16))):
+	elif 'GAGGA' in (s[13:18],s[14:19],s[15:20]) or 'GGAGG' in (s[13:18],s[14:19],s[15:20]) or 'GGAGGA' in (s[13:19],s[14:20],s[15:21]):
 		score = 10
-	elif(comp(kmers['AGAAG']+kmers['AGTAG']+kmers['AGCAG'],range(5,11))):
+	elif 'GAAGA' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
 		score = 9
-	elif(comp(kmers['GGTGG']+kmers['GGCGG']+kmers['GGGGG'],range(3,5))):
+	elif 'GATGA' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
+		score = 9
+	elif 'GACGA' in (s[5:10],s[6:11],s[7:12],s[8:13],s[9:14],s[10:15]):
+		score = 9
+	elif 'GGTGG' in (s[3:8],s[4:9]) or 'GGGGG' in (s[3:8],s[4:9]) or 'GGCGG' in (s[3:8],s[4:9]):
 		score = 8
-	elif(comp(kmers['GGTGG']+kmers['GGCGG']+kmers['GGGGG'],range(11,13))):
+	elif 'GGTGG' in (s[11:16],s[12:17]) or 'GGGGG' in (s[11:16],s[12:17]) or 'GGCGG' in (s[11:16],s[12:17]):
 		score = 7
-	elif(comp(kmers['GGA']+kmers['GAG']+kmers['AGG'],range(11,13))):
+	elif 'AGG' in (s[11:14],s[12:15]) or 'GAG' in (s[11:14],s[12:15]) or 'GGA' in (s[11:14],s[12:15]):
 		score = 6
-	elif(comp(kmers['AGAAG']+kmers['AGTAG']+kmers['AGCAG'],range(3,5))):
+	elif 'GAAGA' in (s[3:8],s[4:9]) or 'GATGA' in (s[3:8],s[4:9]) or 'GACGA' in (s[3:8],s[4:9]):
 		score = 5
-	elif(comp(kmers['AGAAG']+kmers['AGTAG']+kmers['AGCAG'],range(12,13))):
+	elif 'GAAGA' in (s[11:16],s[12:17]) or 'GATGA' in (s[11:16],s[12:17]) or 'GACGA' in (s[11:16],s[12:17]):
 		score = 4
-	elif(comp(kmers['AGGA']+kmers['GGAG']+kmers['GAGG']+kmers['AGTAGG']+kmers['AGCAGG']+kmers['AGGTGG']+kmers['AGGCGG']+kmers['AGGGGG'],range(13,16))):
+	elif 'AGGA' in (s[13:17],s[14:18],s[15:19]) or 'GAGG' in (s[13:17],s[14:18],s[15:19]) or 'GGAG' in (s[13:17],s[14:18],s[15:19]):
 		score = 3
-	elif(comp(kmers['GGA']+kmers['GAG']+kmers['AGG']+kmers['AGAAG']+kmers['AGTAG']+kmers['AGCAG']+kmers['GGTGG']+kmers['GGCGG']+kmers['GGGGG'],range(13,16))):
+	elif 'AGG' in (s[13:16],s[14:17],s[15:18]) or 'GAG' in (s[13:16],s[14:17],s[15:18]) or 'GGA' in (s[13:16],s[14:17],s[15:18]):
 		score = 2
-	elif(comp(kmers['GGA']+kmers['GAG']+kmers['AGG'],range(3,5))):
+	elif 'GGAAGA' in (s[13:19],s[14:20],s[15:21]) or 'GGATGA' in (s[13:19],s[14:20],s[15:21]) or 'GGACGA' in (s[13:19],s[14:20],s[15:21]):
+		score = 2
+	elif 'GGTGG' in (s[13:18],s[14:19],s[15:20]) or 'GGGGG' in (s[13:18],s[14:19],s[15:20]) or 'GGCGG' in (s[13:18],s[14:19],s[15:20]):
+		score = 2
+	elif 'AGG' in (s[3:6],s[4:7]) or 'GAG' in (s[3:6],s[4:7]) or 'GGA' in (s[3:6],s[4:7]):
 		score = 1
 	return score
 
@@ -233,7 +247,6 @@ def get_orfs(dna):
 	
 			starts[-frame] = []
 			stops[-frame] = i
-
 	# Add in any fragment ORFs at the end of the genome
 	for frame in [1, 2, 3]:
 		for start in reversed(starts[frame]):
@@ -261,7 +274,8 @@ def get_orfs(dna):
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]
 	for orf in my_orfs.iter_orfs():
-		orf.weight_rbs = log10(10*(training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]))
+		orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
+		#orf.weight_rbs = log10(10*(training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]))
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -276,7 +290,7 @@ def get_orfs(dna):
 				if(start < stop and stop-start):
 					n = ((stop-start)/8)*3
 					if(start == 0):
-						start = (stop+2)%3+1
+						start = orf.frame
 					for base in range(start+3+n, min(stop-33, len(dna)-1), 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
@@ -303,19 +317,19 @@ def get_orfs(dna):
 		if(orf.frame > 0):
 			if(start == 0):
 				start = orf.frame
-			for base in range(start+3+0, min(stop-0,len(dna)-1), 3):
+			for base in range(start+3, min(stop,len(dna)-1), 3):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
-				orf.hold = orf.hold * ((((1-orf.pstop)**pos_max[ind_max]))**pos_min[ind_min])
+				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
 				maxs.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 		else:
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
-			for base in range(start-0, stop+0, -3):
+			for base in range(start, stop, -3):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
-				orf.hold = orf.hold * ((((1-orf.pstop)**pos_max[ind_max]))**pos_min[ind_min])
+				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
 				maxs.append(pos_max[ind_max])
 				mins.append(pos_min[ind_min])
 		orf.gcfp_min = ave(mins)
@@ -323,8 +337,8 @@ def get_orfs(dna):
 
 	for orf in my_orfs.iter_orfs():
 		orf.score()
-		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.gcfp_min, orf.gcfp_max, orf.weight
-
+		print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.gcfp_min, orf.gcfp_max, orf.weight
+	sys.exit()
 	return my_orfs
 
 

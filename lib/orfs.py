@@ -4,11 +4,11 @@ class Orfs(dict):
 	def __init__(self, n=0):
 		self.n = n
 		self.pstop = 0
-		self.switch = Decimal('0.05')
 		self.min_orf_len = 90
 		self.contig_length = 0
 		self.seq = ''
 		self.other_end = dict()
+
 	def add_orf(self, start, stop, length, frame, seq, rbs, rbs_score):
 		o = Orf(start, stop, length, frame, seq, rbs, rbs_score)
 		if stop not in self:
@@ -25,6 +25,7 @@ class Orfs(dict):
 				self.other_end[stop] = start
 		else:
 			raise ValueError("orf already defined")
+
 	def iter_orfs(self):
 		for stop in self:
 			for start in self[stop]:
@@ -71,32 +72,25 @@ class Orf:
 		self.rbs = rbs
 		self.rbs_score = rbs_score
 		self.length = length
-		self.gcfp_min = 0
-		self.gcfp_max = 0
 		self.pstop = self.p_stop()
 		self.weight = 1
 		self.weight_start = 1
 		self.weight_rbs = 1
 		self.hold = 1
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
+				     'GTG':Decimal('0.32'), 'CAC':Decimal('0.32'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
 	def score(self):
-		#s = (1-self.pstop)**(self.length/3)
         	s = 1/self.hold
         	if(self.start_codon() in self.start_weight):
                 	s = s * self.start_weight[self.start_codon()]
-		#s = s * Decimal(str(self.weight_rbs))
-		#if(s > 2):
-		#	s = s**self.gcfp_min
-		#	s = s**self.gcfp_max
-		#else:
-		#	s = s*self.gcfp_min
-		#	s = s*self.gcfp_max
+		#if(self.rbs_score):
+		s = s * Decimal(str(self.weight_rbs))
         	self.weight = -s
 		
 	def start_codon(self):
 		return self.seq[0:3]
+
 	def p_stop(self):
 		frequency = {'A':0, 'T':0, 'C':0, 'G':0}
 		for base in self.seq:

@@ -56,20 +56,6 @@ def read_fasta(filepath):
 
 	if '' in my_contigs: del my_contigs['']
 	return my_contigs
-def k_means(list):
-	means = [0, 10]
-	param = Decimal('0.01')
-
-	for x in list:
-		closest_k = Decimal(0);
-		smallest_error = Decimal('1E+40') 
-		for k in enumerate(means):
-			error = abs(x-k[1])
-			if error < smallest_error:
-				smallest_error = error
-				closest_k = k[0]
-			means[closest_k] = means[closest_k]*(1-param) + x*(param)
-	return means
 
 def write_output(id, args, my_path, my_graph):
 	outfmt = args.outfmt
@@ -83,17 +69,16 @@ def write_output(id, args, my_path, my_graph):
 			left = eval(source)
 			right = eval(target)
 			weight = my_graph.weight(Edge(left,right,0))
-			if(left.gene == 'CDS'):
-				if(left.position == 0):
-					left.position = '<' + str(((right.position+2)%3)+1)
-				if(right.position == last_node.position):
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				else:
-					right.position += 2
-				if(left.type == 'start' and right.type == 'stop'):
-					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-				elif(left.type == 'stop' and right.type == 'start'):
-					outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			if(left.position == 0):
+				left.position = '<' + str(((right.position+2)%3)+1)
+			if(right.position == last_node.position):
+				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			else:
+				right.position += 2
+			if(left.type == 'start' and right.type == 'stop'):
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			elif(left.type == 'stop' and right.type == 'start'):
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])

@@ -5,7 +5,6 @@ import itertools
 import tempfile
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
-from math import log10
 
 from orfs import Orfs
 from nodes import Node
@@ -14,6 +13,7 @@ from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
+from gc_content import GCcontent
 
 
 def rev_comp(seq):
@@ -44,17 +44,6 @@ def score_gap(length, direction, pgap):
 	if(direction == 'diff'):
 		score = score + (1/s)
 	return score
-
-def push(dict, key, value):
-	try:
-		dict[key].append(value)
-	except:
-		dict[key] = [value]
-def comp(list1, list2):
-	for val in list1:
-		if val in list2:
-			return True
-	return False
 
 def score_rbs(seq):
 	s = seq[::-1]
@@ -148,17 +137,6 @@ def score_rbs(seq):
 		score = 1
 	return score
 
-def p_stop(seq):
-	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
-	for base in seq:
-		if(base not in ['A', 'C', 'T', 'G']):
-			continue
-		frequency[base] += 1
-	Pa = frequency['A']/len(seq)
-	Pt = frequency['T']/len(seq)
-	Pg = frequency['G']/len(seq)
-	Pc = frequency['C']/len(seq)
-       	return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 def ave(a):
 	return Decimal(sum(a)/len(a))
 
@@ -171,6 +149,7 @@ def get_orfs(dna):
 	# find nucleotide frequency, kmers, and create gc frame plot
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	frame_plot = GCframe()
+	gc_content = GCcontent()
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
@@ -185,7 +164,7 @@ def get_orfs(dna):
 		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
-
+		gc_content.add_base(base)
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
@@ -194,6 +173,7 @@ def get_orfs(dna):
        	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
 	gc_pos_freq = frame_plot.get()
+	gc_con_freq = gc_content.get()
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
@@ -275,7 +255,6 @@ def get_orfs(dna):
 	training_rbs[:] = [x/y for x in training_rbs]
 	for orf in my_orfs.iter_orfs():
 		orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
-		#orf.weight_rbs = log10(10*(training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]))
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -310,8 +289,6 @@ def get_orfs(dna):
 	pos_min[:] = [x / y for x in pos_min]	
 
 	for orf in my_orfs.iter_orfs():
-		mins = []
-		maxs = []
 		start = orf.start
 		stop = orf.stop
 		if(orf.frame > 0):
@@ -321,8 +298,6 @@ def get_orfs(dna):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-				maxs.append(pos_max[ind_max])
-				mins.append(pos_min[ind_min])
 		else:
 			if(start >= len(dna)):
 				start = len(dna)-(stop%3)-2
@@ -330,14 +305,10 @@ def get_orfs(dna):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-				maxs.append(pos_max[ind_max])
-				mins.append(pos_min[ind_min])
-		orf.gcfp_min = ave(mins)
-		orf.gcfp_max = ave(maxs)
 
 	for orf in my_orfs.iter_orfs():
 		orf.score()
-		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.gcfp_min, orf.gcfp_max, orf.weight
+		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight
 	return my_orfs
 
 

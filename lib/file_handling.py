@@ -33,7 +33,7 @@ def get_args():
 	parser.add_argument('infile', type=is_valid_file, help='input file in fasta format')
 
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
-	parser.add_argument('-f', '--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank'])
+	parser.add_argument('-f', '--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
 
 	args = parser.parse_args()
 
@@ -57,7 +57,7 @@ def read_fasta(filepath):
 	if '' in my_contigs: del my_contigs['']
 	return my_contigs
 
-def write_output(id, args, my_path, my_graph):
+def write_output(id, args, my_path, my_graph, G):
 	outfmt = args.outfmt
 	outfile = args.outfile
 
@@ -68,17 +68,18 @@ def write_output(id, args, my_path, my_graph):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			weight = my_graph.weight(Edge(left,right,0))
-			if(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-			else:
-				right.position += 2
-			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			if(left.gene == 'CDS'):
+				weight = my_graph.weight(Edge(left,right,0))
+				if(left.position == 0):
+					left.position = '<' + str(((right.position+2)%3)+1)
+				if(right.position == last_node.position):
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+				else:
+					right.position += 2
+				if(left.type == 'start' and right.type == 'stop'):
+					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				elif(left.type == 'stop' and right.type == 'start'):
+					outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
@@ -94,7 +95,7 @@ def write_output(id, args, my_path, my_graph):
 			if(left.position == 0):
 				left.position = '<' + str(((right.position+2)%3)+1)
 			if(right.position == last_node.position):
-				right.position = '>' + str(right.position-1)
+				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 			else:
 				right.position += 2
 			outfile.write('     ' + left.gene.ljust(17))
@@ -103,5 +104,28 @@ def write_output(id, args, my_path, my_graph):
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
 		outfile.write('//\n')
+	elif(outfmt == 'fasta'):
+		last_node = eval(my_path[-1])
+		for source, target in pairwise(my_path):
+			left = eval(source)
+			right = eval(target)
+			if(left.gene == 'CDS'):
+				weight = my_graph.weight(Edge(left,right,0))
+				if(left.frame > 0):
+					o = G.get_orf(left.position, right.position)
+					if(right.position == last_node.position):
+						right.position = left.position+3*int((right.position-left.position)/3)-1
+						outfile.write(id + "." + str(right.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
+					else:
+						outfile.write(id + "." + str(o.stop+2) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
+				else:
+					o = G.get_orf(right.position, left.position)
+					if(left.position == 0):
+						left.position = ((right.position+2)%3)+1
+						outfile.write(id + "." + str(left.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
+					else:
+						outfile.write(id + "." + str(o.stop) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
+				outfile.write(o.seq)
+				outfile.write("\n")
 
 

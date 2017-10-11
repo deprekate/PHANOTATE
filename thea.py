@@ -70,7 +70,7 @@ for id, seq in my_contigs.items():
  
 
 	#-------------------------------Write Output ----------------------------------------------#
-	file_handling.write_output(id, args, my_path, my_graph)
+	file_handling.write_output(id, args, my_path, my_graph, my_orfs)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

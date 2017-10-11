@@ -1,4 +1,7 @@
 from decimal import Decimal
+import sys
+import itertools
+
 class Orfs(dict):
 	"""The class holding the orfs"""
 	def __init__(self, n=0):
@@ -77,19 +80,41 @@ class Orf:
 		self.weight_start = 1
 		self.weight_rbs = 1
 		self.hold = 1
+		self.gcfp_mins = 1
+		self.gcfp_maxs = 1
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.32'), 'CAC':Decimal('0.32'),
+				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
 	def score(self):
         	s = 1/self.hold
         	if(self.start_codon() in self.start_weight):
                 	s = s * self.start_weight[self.start_codon()]
-		#if(self.rbs_score):
 		s = s * Decimal(str(self.weight_rbs))
         	self.weight = -s
 		
 	def start_codon(self):
 		return self.seq[0:3]
+
+	def pp_stop(self):
+		frequency = [None]*4
+		frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0}
+		frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0}
+		frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0}
+		count = [Decimal(0)]*4
+		states = itertools.cycle([1, 2, 3])	
+		frame = states.next()
+		for _ in range(0,3-abs(self.stop-self.start)%3):
+			frame = states.next()
+		for base in self.seq:
+			if(base not in ['A', 'C', 'T', 'G']):
+				continue
+			frequency[frame][base] += 1
+			count[frame] +=1
+			frame = states.next()
+		Ptaa = (frequency[1]['T']/count[1]) * (frequency[2]['A']/count[2]) * (frequency[3]['A']/count[3])
+		Ptga = (frequency[1]['T']/count[1]) * (frequency[2]['G']/count[2]) * (frequency[3]['A']/count[3])
+		Ptag = (frequency[1]['T']/count[1]) * (frequency[2]['A']/count[2]) * (frequency[3]['G']/count[3])
+		return Ptaa+Ptga+Ptag
 
 	def p_stop(self):
 		frequency = {'A':0, 'T':0, 'C':0, 'G':0}
@@ -106,13 +131,11 @@ class Orf:
 
 	def __repr__(self):
 		"""Compute the string representation of the orf"""
-		return "%s(%s,%s,%s,%s,%s,%s,%s)" % (
+		return "%s(%s,%s,%s,%s,%s)" % (
 			self.__class__.__name__,
 			repr(self.start),
 			repr(self.stop),
 			repr(self.frame),
-			repr(self.gcfp_min),
-			repr(self.gcfp_max),
 			repr(self.weight_rbs),
 			repr(self.weight))
 	def __eq__(self, other):

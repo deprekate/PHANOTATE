@@ -364,25 +364,35 @@ def get_graph(my_orfs):
 			last = base
 	#-------------------------------Add in tRNA data---------------------------------------------------#
 	
-	#add_trnas(my_orfs, G)
+	add_trnas(my_orfs, G)
 	
 	#-------------------------------Connect the open reading frames to each other----------------------#
 	for right_node in G.iternodes():
 		r = right_node.position
-		r_other = my_orfs.other_end[r]
+		if(right_node.gene == 'CDS'):
+			r_other = my_orfs.other_end[r]
+		else:
+			r_other = my_orfs.other_end['t'+str(r)]
 		for left_node in G.iternodes():
 			l = left_node.position
-			l_other = my_orfs.other_end[l]
+			if(left_node.gene == 'CDS'):
+				l_other = my_orfs.other_end[l]
+			else:
+				l_other = my_orfs.other_end['t'+str(l)]
 			if(0 < r-l < 300):
 				if(l in my_orfs and my_orfs.other_end[l] in my_orfs[l]):
-					o1 = my_orfs.get_orf(my_orfs.other_end[l], l)
+					o1 = my_orfs.get_orf(my_orfs.other_end[l], l).pstop
+				elif(l in my_orfs):
+					o1 = my_orfs.get_orf(l, my_orfs.other_end[l]).pstop
 				else:
-					o1 = my_orfs.get_orf(l, my_orfs.other_end[l])
+					o1 = pgap
 				if(r in my_orfs and my_orfs.other_end[r] in my_orfs[r]):
-					o2 = my_orfs.get_orf(my_orfs.other_end[r], r)
+					o2 = my_orfs.get_orf(my_orfs.other_end[r], r).pstop
+				elif(r in my_orfs):
+					o2 = my_orfs.get_orf(r, my_orfs.other_end[r]).pstop
 				else:
-					o2 = my_orfs.get_orf(r, my_orfs.other_end[r])
-				pstop = ave([o1.pstop, o2.pstop])
+					o2 = pgap
+				pstop = ave([o1, o2])
 			
 				# same directions
 				if(left_node.frame*right_node.frame > 0):
@@ -465,7 +475,7 @@ def add_trnas(my_orfs, G):
 			source = Node('tRNA', 'start', -4, start)
 			target = Node('tRNA', 'stop', -4, stop)
 		G.add_edge(Edge(source, target, -Decimal(100)))
-		#my_orfs.other_end[start] = stop
-		#my_orfs.other_end[stop] = start
+		my_orfs.other_end['t'+str(start)] = stop
+		my_orfs.other_end['t'+str(stop)] = start
 
 

@@ -32,7 +32,7 @@ my_contigs = file_handling.read_fasta(args.infile);
 for id, seq in my_contigs.items():
 
 	#-------------------------------Create the Graph-------------------------------------------#
-	my_orfs = functions.get_orfs(seq)
+	my_orfs = functions.get_orfs(seq, id)
 
 	my_graph = functions.get_graph(my_orfs)
 	#-------------------------------Run Bellman-Ford-------------------------------------------#

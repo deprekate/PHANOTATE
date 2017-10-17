@@ -83,7 +83,7 @@ class Orf:
 		self.gcfp_mins = 1
 		self.gcfp_maxs = 1
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
+				     'GTG':Decimal('0.32'), 'CAC':Decimal('0.32'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
 	def score(self):
         	s = 1/self.hold

@@ -140,7 +140,7 @@ def score_rbs(seq):
 def ave(a):
 	return Decimal(sum(a)/len(a))
 
-def get_orfs(dna):
+def get_orfs(dna, id):
 	# This is the object that holds all the orfs
 	my_orfs = Orfs()
 	my_orfs.seq = dna
@@ -259,6 +259,16 @@ def get_orfs(dna):
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 	pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
+	#f = open(id[1:]+".orfs", "w")
+	#for orfs in my_orfs.iter_in():
+	#	for orf in orfs:
+	#		f.write(id+"."+str(orf.stop))
+	#		f.write("\n")
+	#		f.write(orf.seq)
+	#		f.write("\n")
+	#		break
+	#f.close()
+	#sys.exit()
 	for orfs in my_orfs.iter_in():
 		for orf in orfs:
 			if(orf.start_codon() == 'ATG'):
@@ -280,7 +290,6 @@ def get_orfs(dna):
 					for base in range(start-n, stop+33, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
-				break
 
 	# normalize to one
 	y = max(pos_max)

@@ -290,6 +290,7 @@ def get_orfs(dna, id):
 					for base in range(start-n, stop+33, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
+				break
 
 	# normalize to one
 	y = max(pos_max)

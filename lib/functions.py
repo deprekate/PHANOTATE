@@ -13,7 +13,7 @@ from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
-from gc_content import GCcontent
+from gc_frame_content import GCcontent
 
 
 def rev_comp(seq):
@@ -165,6 +165,8 @@ def get_orfs(dna, id):
 		#gc frame plot
 		frame_plot.add_base(base)
 		gc_content.add_base(base)
+	gc_pos_freq = frame_plot.get()
+	gc_con_freq = gc_content.get()
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
@@ -172,23 +174,22 @@ def get_orfs(dna, id):
 	Pc = frequency['C']/(my_orfs.contig_length*2)
        	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
-	gc_pos_freq = frame_plot.get()
-	gc_con_freq = gc_content.get()
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
 
-	#Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
-	#start_weight['ATG'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAT'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['GTG'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAC'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['TTG'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAA'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts)b
+	Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
+	start_weight = dict()
+	start_weight['ATG'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
+	start_weight['CAT'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
+	start_weight['GTG'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
+	start_weight['CAC'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
+	start_weight['TTG'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
+	start_weight['CAA'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
 	
 	# The dicts that will hold the start and stop codons
-	stops = {1:0, 2:0, 3:0, -1:0, -2:0, -3:0}
-	starts = {1:[0], 2:[0], 3:[0], -1:[0], -2:[0], -3:[0]}
+	stops = {1:0, 2:0, 3:0, -1:1, -2:2, -3:3}
+	starts = {1:[1], 2:[2], 3:[3], -1:[0], -2:[0], -3:[0]}
 
 
 	# Reset iterator and find all the open reading frames
@@ -196,32 +197,31 @@ def get_orfs(dna, id):
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
 		frame = states.next()
-
 		if codon in ['ATG', 'GTG', 'TTG']:
 			starts[frame].append(i)
 		elif rev_comp(codon) in ['ATG', 'GTG', 'TTG']:
-			starts[-frame].append(i)
+			starts[-frame].append(i+2)
 		elif codon in ['TAA', 'TGA', 'TAG']:
+			stop = i+2
 			for start in reversed(starts[frame]):
-				stop = i
-				length = stop-start+3
+				length = stop-start+1
 				if(length >= my_orfs.min_orf_len):
-					seq = dna[max(0,start-1):stop+2]
+					seq = dna[max(0,start-1):stop]
 					rbs = dna[start-21:start]
 					rbs_score = score_rbs(dna[start-21:start])
 					my_orfs.add_orf(start, stop, length, frame, seq, rbs, rbs_score)
 					training_rbs[rbs_score] += 1
 	
 			starts[frame] = []
-			stops[frame] = i
+			stops[frame] = stop
 		elif rev_comp(codon) in ['TAA', 'TGA', 'TAG']:
+			stop = stops[-frame]
 			for start in starts[-frame]:
-				stop = stops[-frame]
-				length = start-stop+3
+				length = start-stop+1
 				if(length >= my_orfs.min_orf_len):
-					seq = rev_comp(dna[max(0,stop-1):start+2])
-					rbs = rev_comp(dna[start+2:start+23])
-					rbs_score = score_rbs(rev_comp(dna[start+2:start+23]))
+					seq = rev_comp(dna[max(0,stop-1):start])
+					rbs = rev_comp(dna[start:start+21])
+					rbs_score = score_rbs(rev_comp(dna[start:start+21]))
 					my_orfs.add_orf(start, stop, length, -frame, seq, rbs, rbs_score)
 					training_rbs[rbs_score] += 1
 	
@@ -230,26 +230,27 @@ def get_orfs(dna, id):
 	# Add in any fragment ORFs at the end of the genome
 	for frame in [1, 2, 3]:
 		for start in reversed(starts[frame]):
-			stop = i+3
-			length = stop-start
+			stop = my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3)
+			length = stop-start+1
+			#stop = i+3
 			if(length >= my_orfs.min_orf_len):
-				seq = dna[max(0,start-1):stop+2]
+				seq = dna[max(0,start-1):stop]
 				rbs = dna[start-21:start]
 				rbs_score = score_rbs(dna[start-21:start])
 				my_orfs.add_orf(start, stop, length, frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
 
-		starts[-frame].append(i+3)	
+		starts[-frame].append(my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3))	
 		for start in starts[-frame]:
 			stop = stops[-frame]
-			length = start-stop
+			length = start-stop+1
 			if(length >= my_orfs.min_orf_len):
-				seq = rev_comp(dna[max(0,stop-1):start+2])
-				rbs = rev_comp(dna[start+2:start+23])
-				rbs_score = score_rbs(rev_comp(dna[start+2:start+23]))
+				seq = rev_comp(dna[max(0,stop-1):start])
+				rbs = rev_comp(dna[start:start+21])
+				rbs_score = score_rbs(rev_comp(dna[start:start+21]))
 				my_orfs.add_orf(start, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
-
+	
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]
@@ -268,26 +269,19 @@ def get_orfs(dna, id):
 	#		f.write("\n")
 	#		break
 	#f.close()
-	#sys.exit()
 	for orfs in my_orfs.iter_in():
 		for orf in orfs:
 			if(orf.start_codon() == 'ATG'):
 				start = orf.start
 				stop = orf.stop
-				loc_pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
-				loc_pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
-				if(start < stop and stop-start):
+				if(start < stop):
 					n = ((stop-start)/8)*3
-					if(start == 0):
-						start = orf.frame
-					for base in range(start+3+n, min(stop-33, len(dna)-1), 3):
+					for base in range(start+n, stop-33, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-				elif(stop and stop < start and start-stop):
+				elif(stop < start):
 					n = ((start-stop)/8)*3
-					if(start >= len(dna)):
-						start = len(dna)-(stop%3)-2
-					for base in range(start-n, stop+33, -3):
+					for base in range(start-n+1, stop+33-1, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				break
@@ -302,20 +296,17 @@ def get_orfs(dna, id):
 		start = orf.start
 		stop = orf.stop
 		if(orf.frame > 0):
-			if(start == 0):
-				start = orf.frame
-			for base in range(start+3, min(stop,len(dna)-1), 3):
+			for base in range(start, stop, 3):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
+				#orf.hold = orf.hold * (((1-gc_con_freq[base].forward)**pos_max[ind_max])**pos_min[ind_min])
 		else:
-			if(start >= len(dna)):
-				start = len(dna)-(stop%3)-2
-			for base in range(start, stop, -3):
+			for base in range(start-2, stop, -3):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-
+				#orf.hold = orf.hold * (((1-gc_con_freq[base].reverse)**pos_max[ind_max])**pos_min[ind_min])
 	for orf in my_orfs.iter_orfs():
 		orf.score()
 		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight
@@ -389,7 +380,7 @@ def get_graph(my_orfs):
 				l_other = my_orfs.other_end[l]
 			else:
 				l_other = my_orfs.other_end['t'+str(l)]
-			if(0 < r-l < 300):
+			if(0 <= r-l < 300):
 				if(l in my_orfs and my_orfs.other_end[l] in my_orfs[l]):
 					o1 = my_orfs.get_orf(my_orfs.other_end[l], l).pstop
 				elif(l in my_orfs):
@@ -408,39 +399,39 @@ def get_graph(my_orfs):
 				if(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
-							score = score_gap(r-l-3, 'same', pgap)
+							score = score_gap(r-l, 'same', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						else:
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l+3, 'same', pstop)
+									score = score_overlap(r-l, 'same', pstop)
 									G.add_edge(Edge(right_node, left_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='stop'):
 						if(left_node.frame > 0):
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l+3, 'same', pstop)
+									score = score_overlap(r-l, 'same', pstop)
 									G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l-3, 'same', pgap)
+							score = score_gap(r-l, 'same', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 				# different directions
 				else:
 					if(left_node.type == 'stop' and right_node.type =='stop'):
 						if(right_node.frame > 0):
 							if(r_other < l and r < l_other):
-								score = score_overlap(r-l+3, 'diff', pstop)
+								score = score_overlap(r-l, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l-3, 'diff', pgap)
+							score = score_gap(r-l, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='start'):
-						if(right_node.frame > 0 and r-l > 2):
-							score = score_gap(r-l-3, 'diff', pgap)
+						if(right_node.frame > 0):
+							score = score_gap(r-l, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
 							if(r_other < l and r < l_other):
-								score = score_overlap(r-l+3, 'diff', pstop)
+								score = score_overlap(r-l, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
 	source = Node('source', 'source', 0, 0)

@@ -65,23 +65,16 @@ def write_output(id, args, my_path, my_graph, G):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
+		cutoff = -1/((1-G.pstop)**30)/3
+		#cutoff = -Decimal("1")
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
 				length = abs(right.position-left.position)/3
-				cutoff = (1/((1-G.pstop)**30))/3
-				#print left.position, weight, length, cutoff
-				#continue
-				if(weight > -cutoff):
-					continue
-				if(left.position == 0):
-					left.position = '<' + str(((right.position+2)%3)+1)
-				if(right.position == last_node.position):
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				else:
-					right.position += 2
+				if(weight > cutoff):
+					pass #continue
 				if(left.type == 'start' and right.type == 'stop'):
 					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
 				elif(left.type == 'stop' and right.type == 'start'):

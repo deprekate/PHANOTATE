@@ -53,18 +53,7 @@ for id, seq in my_contigs.items():
 	
 	#Determine whether the first edge is a gap or an fragment open reading frame
 	try:
-		node1 = eval(my_path[1])
-		node2 = eval(my_path[2])
-		if(node1.type == 'stop' and node1.frame < 0):
-			if(node1.frame == node2.frame):
-				my_path = my_path[1:]
-			else:
-				my_path = my_path[2:]
-		elif(node1.type == 'start' and node1.frame > 0):
-			if(node1.frame == node2.frame):
-				my_path = my_path[1:]
-			else:
-				my_path = my_path[2:]
+		my_path = my_path[1:]
 	except:
 		sys.stdout.write("Error running fastpathz: " + output + '\n')
  

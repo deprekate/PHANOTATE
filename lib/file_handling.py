@@ -74,11 +74,11 @@ def write_output(id, args, my_path, my_graph, G):
 				weight = my_graph.weight(Edge(left,right,0))
 				length = abs(right.position-left.position)/3
 				if(weight > cutoff):
-					pass #continue
+					continue
 				if(left.type == 'start' and right.type == 'stop'):
-					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
 				elif(left.type == 'stop' and right.type == 'start'):
-					outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(str(right.position+2) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
@@ -91,17 +91,11 @@ def write_output(id, args, my_path, my_graph, G):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			if(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-			else:
-				right.position += 2
 			outfile.write('     ' + left.gene.ljust(17))
 			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
+				outfile.write(str(left.position) + '..' + str(right.position+2) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+				outfile.write('complement(' + str(left.position) + '..' + str(right.position+2) + ')\n')
 		outfile.write('//\n')
 	elif(outfmt == 'fasta'):
 		last_node = eval(my_path[-1])

@@ -43,7 +43,7 @@ for id, seq in my_contigs.items():
 	except:
 		sys.stdout.write("Error running fastpathz. Did you run make to compile the binary?\n")
 		sys.exit()
-	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	# Write edges +to the fastpath program, and multiply the weight to not lose decimal places
 	for e in my_graph.iteredges():
 		proc.stdin.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
 		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")

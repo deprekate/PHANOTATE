@@ -49,6 +49,9 @@ for id, seq in my_contigs.items():
 		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*10) + "\n")
 	#sys.exit()
 	output = proc.communicate()[0].rstrip()
+	if(output[:5] == 'ERROR'):
+		print output
+		exit()
 	my_path = output.split('\n')
 	
 	#Determine whether the first edge is a gap or an fragment open reading frame

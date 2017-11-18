@@ -181,13 +181,6 @@ def get_orfs(dna, id):
 	background_rbs[:] = [x/y for x in background_rbs]
 
 	Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
-	start_weight = dict()
-	start_weight['ATG'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	start_weight['CAT'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	start_weight['GTG'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	start_weight['CAC'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	start_weight['TTG'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	start_weight['CAA'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
 	
 	# The dicts that will hold the start and stop codons
 	stops = {1:0, 2:0, 3:0, -1:1, -2:2, -3:3}
@@ -278,12 +271,12 @@ def get_orfs(dna, id):
 				stop = orf.stop
 				if(start < stop):
 					n = ((stop-start)/8)*3
-					for base in range(start+n, stop-33, 3):
+					for base in range(start+n, stop-36, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				elif(stop < start):
 					n = ((start-stop)/8)*3
-					for base in range(start-n+3, stop+33-1, -3):
+					for base in range(start-n, stop+36, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				break
@@ -310,15 +303,6 @@ def get_orfs(dna, id):
 				#orf.hold = orf.hold * (((1-gc_con_freq[base].reverse)**pos_max[ind_max])**pos_min[ind_min])
 	for orf in my_orfs.iter_orfs():
 		orf.score()
-	#for orfs in my_orfs.iter_in():
-	#	for orf in orfs:
-	#		if(orf.frame > 0):
-	#			print id+"."+str(orf.stop+2)
-	#		else:
-	#			print id+"."+str(orf.stop)
-	#		print orf.seq
-	#		break
-	#exit()
 	return my_orfs
 
 
@@ -403,44 +387,50 @@ def get_graph(my_orfs):
 				else:
 					o2 = pgap
 				pstop = ave([o1, o2])
-			
+		
+				# trna	
+				if(left_node.gene == 'tRNA' or right_node.gene == 'tRNA'):
+					if((left_node.frame*right_node.frame > 0 and left_node.type != right_node.type) or (left_node.frame*right_node.frame < 0 and left_node.type == right_node.type)):
+						if not G.has_edge(Edge(left_node, right_node, 1)):
+							score = score_gap(r-l-3, 'same', pgap)
+							G.add_edge(Edge(left_node, right_node, score ))	
 				# same directions
-				if(left_node.frame*right_node.frame > 0):
+				elif(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
-							score = score_gap(r-l, 'same', pgap)
+							score = score_gap(r-l-3, 'same', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						else:
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l, 'same', pstop)
+									score = score_overlap(r-l+3, 'same', pstop)
 									G.add_edge(Edge(right_node, left_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='stop'):
 						if(left_node.frame > 0):
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l, 'same', pstop)
+									score = score_overlap(r-l+3, 'same', pstop)
 									G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l, 'same', pgap)
+							score = score_gap(r-l-3, 'same', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 				# different directions
 				else:
 					if(left_node.type == 'stop' and right_node.type =='stop'):
 						if(right_node.frame > 0):
 							if(r_other < l and r < l_other):
-								score = score_overlap(r-l, 'diff', pstop)
+								score = score_overlap(r-l+3, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l, 'diff', pgap)
+							score = score_gap(r-l-3, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='start'):
-						if(right_node.frame > 0):
-							score = score_gap(r-l, 'diff', pgap)
+						if(right_node.frame > 0 and r-l > 2):
+							score = score_gap(r-l-3, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
 							if(r_other < l and r < l_other):
-								score = score_overlap(r-l, 'diff', pstop)
+								score = score_overlap(r-l+3, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
 	source = Node('source', 'source', 0, 0)
@@ -480,12 +470,14 @@ def add_trnas(my_orfs, G):
 		stop = int(column[3])
 		if(start < stop):
 			source = Node('tRNA', 'start', 4, start)
-			target = Node('tRNA', 'stop', 4, stop)
+			target = Node('tRNA', 'stop', 4, stop-2)
+			my_orfs.other_end['t'+str(stop-2)] = start
+			my_orfs.other_end['t'+str(start)] = stop-2
 		else:
-			source = Node('tRNA', 'start', -4, start)
-			target = Node('tRNA', 'stop', -4, stop)
-		G.add_edge(Edge(source, target, -Decimal(100)))
-		my_orfs.other_end['t'+str(start)] = stop
-		my_orfs.other_end['t'+str(stop)] = start
+			source = Node('tRNA', 'stop', -4, stop)
+			target = Node('tRNA', 'start', -4, start-2)
+			my_orfs.other_end['t'+str(start-2)] = stop
+			my_orfs.other_end['t'+str(stop)] = start-2
+		G.add_edge(Edge(source, target, -Decimal(10)))
 
 

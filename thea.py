@@ -25,6 +25,9 @@ args = file_handling.get_args()
 #--------------------------------------------------------------------------------------------------#
 
 my_contigs = file_handling.read_fasta(args.infile);
+if not my_contigs:
+	sys.stdout.write("Error: no sequences found in infile\n")
+	sys.exit()
 
 #--------------------------------------------------------------------------------------------------#
 #                               MAIN ROUTINE                                                       #

@@ -23,6 +23,19 @@ def rev_comp(seq):
 		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
+def codon_usage(seq):
+	nucs = ['T', 'C', 'A', 'G']
+	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
+	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+	codon_table = dict(zip(codons, amino_acids))
+
+	codons_count = dict()
+	for codon in codons:
+		codons_count[codon] = 0
+	for i in range(3, len(seq)-8, 3):
+		codons_count[seq[i:i+3]] += 1
+	return codons_count
+
 def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
 	s = Decimal('0.05')
@@ -155,6 +168,15 @@ def get_orfs(dna, id):
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
+	background_start = {'ATG':0, 'GTG':0, 'TTG':0}
+	training_start = {'ATG':0, 'GTG':0, 'TTG':0}
+
+	#stuff
+	nucs = ['T', 'C', 'A', 'G']
+	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
+	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+	codon_table = dict(zip(codons, amino_acids))
+
 	for i, base in enumerate(dna):
 		if(base not in ['A', 'C', 'T', 'G']):
 			continue
@@ -167,6 +189,11 @@ def get_orfs(dna, id):
 		#gc frame plot
 		frame_plot.add_base(base)
 		gc_content.add_base(base)
+		#  
+		if(dna[i:i+3] in background_start):
+			background_start[dna[i:i+3]] += 1
+ 		if(rev_comp(dna[i:i+3]) in background_start):
+			background_start[rev_comp(dna[i:i+3])] += 1
 	gc_pos_freq = frame_plot.get()
 	gc_con_freq = gc_content.get()
 
@@ -179,6 +206,11 @@ def get_orfs(dna, id):
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
+
+	y = background_start['ATG'] + background_start['GTG'] + background_start['TTG']
+	background_start['ATG'] = background_start['ATG']/float(y)
+	background_start['GTG'] = background_start['GTG']/float(y)
+	background_start['TTG'] = background_start['TTG']/float(y)
 
 	Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
 	
@@ -253,12 +285,14 @@ def get_orfs(dna, id):
 				rbs_score = score_rbs(rev_comp(dna[start:start+21]))
 				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
-	
+
+
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]
 	for orf in my_orfs.iter_orfs():
 		orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
+
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -478,6 +512,6 @@ def add_trnas(my_orfs, G):
 			target = Node('tRNA', 'start', -4, start-2)
 			my_orfs.other_end['t'+str(start-2)] = stop
 			my_orfs.other_end['t'+str(stop)] = start-2
-		G.add_edge(Edge(source, target, -Decimal(10)))
+		G.add_edge(Edge(source, target, -Decimal(20)))
 
 

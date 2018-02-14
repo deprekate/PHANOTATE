@@ -99,11 +99,14 @@ def write_output(id, args, my_path, my_graph, G):
 		outfile.write('//\n')
 	elif(outfmt == 'fasta'):
 		last_node = eval(my_path[-1])
+		cutoff = -1/((1-G.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
+				if(weight > cutoff):
+					continue
 				if(left.frame > 0):
 					o = G.get_orf(left.position, right.position)
 					if(right.position == last_node.position):

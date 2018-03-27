@@ -1,6 +1,7 @@
 import sys
 import os.path
 import itertools
+import textwrap
 
 from edges import Edge
 from nodes import Node
@@ -103,7 +104,23 @@ def write_output(id, args, my_path, my_graph, G):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
-		outfile.write('//\n')
+		outfile.write('ORIGIN')
+		i = 0
+		dna = textwrap.wrap(G.seq, 10)
+		for block in dna:
+			if(i%60 == 0):
+				outfile.write('\n')
+				outfile.write(str(i+1).rjust(9))
+				outfile.write(' ')
+				outfile.write(block.lower())
+			else:
+				outfile.write(' ')
+				outfile.write(block.lower())
+			i += 10
+			
+		outfile.write('\n')	
+		outfile.write('//')
+		outfile.write('\n')
 	elif(outfmt == 'fasta'):
 		last_node = eval(my_path[-1])
 		for source, target in pairwise(my_path):

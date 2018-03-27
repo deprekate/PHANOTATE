@@ -155,7 +155,10 @@ def get_orfs(dna):
 
 	for i, base in enumerate(dna):
 		if(base not in ['A', 'C', 'T', 'G']):
-			continue
+			if(base in ['S', 'B', 'V']):
+				base = 'G'
+			else:
+				base = 'A'
 		#nucl frequency
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1

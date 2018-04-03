@@ -28,8 +28,8 @@ def is_valid_file(x):
 	return x
 
 def get_args():
-	usage = 'thea.py [-opt1, [-opt2, ...]] infile'
-	parser = argparse.ArgumentParser(description='THEA: A phage genome annotator', formatter_class=RawTextHelpFormatter, usage=usage)
+	usage = 'phanotate.py [-opt1, [-opt2, ...]] infile'
+	parser = argparse.ArgumentParser(description='PHANOTATE: A phage genome annotator', formatter_class=RawTextHelpFormatter, usage=usage)
 
 	parser.add_argument('infile', type=is_valid_file, help='input file in fasta format')
 

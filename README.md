@@ -1,25 +1,25 @@
 Introduction
 ------------
 
-THEA is a tool to annotate phage genomes.  It uses the assumption that non-coding
+PHANOTATE is a tool to annotate phage genomes.  It uses the assumption that non-coding
 bases in a phage genome is disadvantageous, and then populates a weighted graph to
 find the optimal path through the six frames of the DNA where open reading frames
 are beneficial paths, while gaps and overlaps are penalized paths.
 
-To install `THEA`,
+To install `PHANOTATE`,
 ```sh
- git clone --recursive git@github.com:deprekate/THEA.git
- cd THEA; make
+ git clone --recursive git@github.com:deprekate/PHANOTATE.git
+ cd PHANOTATE; make
 ```
-The current version of THEA relies on C binary "FastPathZ", from the project [FastPath](https://github.com/deprekate/fastpath), to 
+The current version of PHANOTATE relies on C binary "FastPathZ", from the project [FastPath](https://github.com/deprekate/fastpath), to 
 calculate the optimal path quickly.
 
-THEA Example
+PHANOTATE Example
 --------------
 
 Run on included sample data:
 ```sh
-./thea.py tests/NC_001416.1.fasta 
+./phanotate.py tests/NC_001416.1.fasta 
 ```
 Output is the predicted ORFs, and should look like
 ```sh

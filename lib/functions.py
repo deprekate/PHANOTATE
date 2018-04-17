@@ -328,7 +328,6 @@ def get_graph(my_orfs):
 			source = Node('CDS', 'stop', orf.frame, orf.stop)
 			target = Node('CDS', 'start', orf.frame, orf.start)
 		G.add_edge(Edge(source, target, orf.weight))
-
 	#-------------------------------Check for long noncoding regions that would break the path---------#
 	bases = [None] * my_orfs.contig_length
 	for orfs in my_orfs.iter_in():

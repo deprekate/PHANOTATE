@@ -71,9 +71,13 @@ def write_output(id, args, my_path, my_graph, G):
 			right = eval(target)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
-				if(left.position == 0):
+				if(left.position == 0 and right.position == last_node.position):
+					left.position = abs(left.frame)
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+					left.position = '<' + str(left.position)
+				elif(left.position == 0):
 					left.position = '<' + str(((right.position+2)%3)+1)
-				if(right.position == last_node.position):
+				elif(right.position == last_node.position):
 					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 				else:
 					right.position += 2

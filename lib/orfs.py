@@ -11,7 +11,6 @@ class Orfs(dict):
 		self.contig_length = 0
 		self.seq = ''
 		self.other_end = dict()
-		self.p = dict()
 
 	def add_orf(self, start, stop, length, frame, seq, rbs, rbs_score):
 		o = Orf(start, stop, length, frame, seq, rbs, rbs_score)
@@ -84,7 +83,7 @@ class Orf:
 		self.gcfp_mins = 1
 		self.gcfp_maxs = 1
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.42'), 'CAC':Decimal('0.42'),
+				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
 	def score(self):
         	s = 1/self.hold

@@ -196,9 +196,6 @@ def get_orfs(dna, id):
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
-	background_start = {'ATG':0, 'GTG':0, 'TTG':0}
-	training_start = {'ATG':0, 'GTG':0, 'TTG':0}
-
 	#stuff
 	nucs = ['T', 'C', 'A', 'G']
 	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
@@ -217,11 +214,6 @@ def get_orfs(dna, id):
 		#gc frame plot
 		frame_plot.add_base(base)
 		#gc_content.add_base(base)
-		#  
-		if(dna[i:i+3] in background_start):
-			background_start[dna[i:i+3]] += 1
- 		if(rev_comp(dna[i:i+3]) in background_start):
-			background_start[rev_comp(dna[i:i+3])] += 1
 	gc_pos_freq = frame_plot.get()
 	#gc_con_freq = gc_content.get()
 
@@ -249,16 +241,6 @@ def get_orfs(dna, id):
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
-		if codon in background_mer:
-			background_mer[codon] += 1
-		else:
-			background_mer[codon] = 1
-		codon_r = rev_comp(codon)
-		if codon_r in background_mer:
-			background_mer[codon_r] += 1
-		else:
-			background_mer[codon_r] = 1
-
 		frame = states.next()
 		if codon in start_codons:
 			starts[frame].append(i)
@@ -389,13 +371,12 @@ def get_orfs(dna, id):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-				#orf.hold = orf.hold * (((1-gc_con_freq[base].forward)**pos_max[ind_max])**pos_min[ind_min])
 		else:
 			for base in range(start, stop, -3):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-				#orf.hold = orf.hold * (((1-gc_con_freq[base].reverse)**pos_max[ind_max])**pos_min[ind_min])
+	
 	for orf in my_orfs.iter_orfs():
 		orf.score()
 		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight

@@ -4,7 +4,8 @@ import copy
 import itertools
 import tempfile
 from subprocess import Popen, PIPE, STDOUT
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
+from math import log10
 
 from orfs import Orfs
 from nodes import Node
@@ -14,7 +15,37 @@ from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
 from gc_frame_content import GCcontent
+import kmeans
 
+
+def most(a, b):
+	if a > b:
+		return 0
+	else:
+		return 1
+def mean(data):
+    """Return the sample arithmetic mean of data."""
+    n = len(data)
+    if n < 1:
+        raise ValueError('mean requires at least one data point')
+    return sum(data)/n # in Python 2 use sum(data)/float(n)
+
+def _ss(data):
+    """Return sum of square deviations of sequence data."""
+    c = mean(data)
+    ss = sum((x-c)**2 for x in data)
+    return ss
+
+def stddev(data, ddof=0):
+    """Calculates the population standard deviation
+    by default; specify ddof=1 to compute the sample
+    standard deviation."""
+    n = len(data)
+    if n < 2:
+        raise ValueError('variance requires at least two data points')
+    ss = _ss(data)
+    pvar = ss/(n-ddof)
+    return pvar**0.5
 
 def rev_comp(seq):
 	seq_dict = {'A':'T','T':'A','G':'C','C':'G',
@@ -22,6 +53,21 @@ def rev_comp(seq):
 		    'R':'Y','Y':'R','S':'S','W':'W','K':'M','M':'K',
 		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
+
+def amino_acid_frequency(seq):
+	nucs = ['T', 'C', 'A', 'G']
+	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
+	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+	codon_table = dict(zip(codons, amino_acids))
+
+	aa = dict()
+	aa['*'] = 0
+	for a in amino_acids:
+		aa[a] = 0
+	for i in range(0, len(seq)-5, 3):
+		aa[codon_table[seq[i:i+3]]] += 1
+		aa['*'] += 1
+	return aa
 
 def codon_usage(seq):
 	nucs = ['T', 'C', 'A', 'G']
@@ -164,7 +210,7 @@ def get_orfs(dna, id):
 	# find nucleotide frequency, kmers, and create gc frame plot
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	frame_plot = GCframe()
-	gc_content = GCcontent()
+	#gc_content = GCcontent()
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
@@ -188,14 +234,14 @@ def get_orfs(dna, id):
 		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
-		gc_content.add_base(base)
+		#gc_content.add_base(base)
 		#  
 		if(dna[i:i+3] in background_start):
 			background_start[dna[i:i+3]] += 1
  		if(rev_comp(dna[i:i+3]) in background_start):
 			background_start[rev_comp(dna[i:i+3])] += 1
 	gc_pos_freq = frame_plot.get()
-	gc_con_freq = gc_content.get()
+	#gc_con_freq = gc_content.get()
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
@@ -203,16 +249,9 @@ def get_orfs(dna, id):
 	Pc = frequency['C']/(my_orfs.contig_length*2)
        	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
-
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
 
-	y = background_start['ATG'] + background_start['GTG'] + background_start['TTG']
-	background_start['ATG'] = background_start['ATG']/float(y)
-	background_start['GTG'] = background_start['GTG']/float(y)
-	background_start['TTG'] = background_start['TTG']/float(y)
-
-	Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
 	
 	# The dicts that will hold the start and stop codons
 	stops = {1:0, 2:0, 3:0, -1:1, -2:2, -3:3}
@@ -224,11 +263,20 @@ def get_orfs(dna, id):
 	if dna[2:5] not in start_codons:
 		starts[3].append(3)
 
-
 	# Reset iterator and find all the open reading frames
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
+		if codon in background_mer:
+			background_mer[codon] += 1
+		else:
+			background_mer[codon] = 1
+		codon_r = rev_comp(codon)
+		if codon_r in background_mer:
+			background_mer[codon_r] += 1
+		else:
+			background_mer[codon_r] = 1
+
 		frame = states.next()
 		if codon in start_codons:
 			starts[frame].append(i)
@@ -286,13 +334,44 @@ def get_orfs(dna, id):
 				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
 
+	
+	#for orf in my_orfs.iter_orfs():
+	for orfs in my_orfs.iter_in():
+	   	for orf in orfs:
+	 	  	H = 0.0
+	   		aa_freq = amino_acid_frequency(orf.seq)
+			for aa in freq_obs:
+				p = aa_freq[aa]
+				if(p):
+					H += p*log10(p)
+			s = []
+			for aa in freq_obs:
+				p = aa_freq[aa]
+				if(p):
+					s.append((1/H)*p*log10(p))
+				else:
+					s.append(0.0)
+			sys.stdout.write(str(orf.start)+"_"+str(orf.stop))
+			sys.stdout.write("\t")
+			sys.stdout.write(good[str(orf.end())])
+			sys.stdout.write("\t")
+			for a in s:
+				sys.stdout.write(str(a))
+				sys.stdout.write("\t")
+			#for a in freq_obs:
+			#	sys.stdout.write(str(aa_freq[a]/float(aa_freq['*'])))
+			#	sys.stdout.write("\t")
+			sys.stdout.write("\n")
+			
+	
+	sys.exit()
+
 
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]
 	for orf in my_orfs.iter_orfs():
 		orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
-
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -337,6 +416,7 @@ def get_orfs(dna, id):
 				#orf.hold = orf.hold * (((1-gc_con_freq[base].reverse)**pos_max[ind_max])**pos_min[ind_min])
 	for orf in my_orfs.iter_orfs():
 		orf.score()
+		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight
 	return my_orfs
 
 

@@ -33,7 +33,6 @@ if not my_contigs:
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
 for id, seq in my_contigs.items():
-
 	#-------------------------------Create the Graph-------------------------------------------#
 	my_orfs = functions.get_orfs(seq, id)
 

@@ -95,6 +95,16 @@ class Orf:
 		
 	def start_codon(self):
 		return self.seq[0:3]
+	def end(self):
+		if self.frame > 0:
+			return self.stop+2
+		else:
+			return self.stop
+	def beg(self):
+		if self.frame < 0:
+			return self.start+2
+		else:
+			return self.start
 
 	def pp_stop(self):
 		frequency = [None]*4

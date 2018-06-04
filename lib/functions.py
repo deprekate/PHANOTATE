@@ -18,11 +18,6 @@ from gc_frame_content import GCcontent
 import kmeans
 
 
-def most(a, b):
-	if a > b:
-		return 0
-	else:
-		return 1
 def mean(data):
     """Return the sample arithmetic mean of data."""
     n = len(data)
@@ -68,19 +63,6 @@ def amino_acid_frequency(seq):
 		aa[codon_table[seq[i:i+3]]] += 1
 		aa['*'] += 1
 	return aa
-
-def codon_usage(seq):
-	nucs = ['T', 'C', 'A', 'G']
-	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
-	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
-	codon_table = dict(zip(codons, amino_acids))
-
-	codons_count = dict()
-	for codon in codons:
-		codons_count[codon] = 0
-	for i in range(3, len(seq)-8, 3):
-		codons_count[seq[i:i+3]] += 1
-	return codons_count
 
 def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)

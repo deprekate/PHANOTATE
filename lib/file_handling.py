@@ -77,6 +77,7 @@ def write_output(id, args, my_path, my_graph, G):
 					left.position = '<' + str(left.position)
 				elif(left.position == 0):
 					left.position = '<' + str(((right.position+2)%3)+1)
+					right.position += 2
 				elif(right.position == last_node.position):
 					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 				else:

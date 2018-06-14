@@ -142,6 +142,8 @@ def ave(a):
 	return Decimal(sum(a)/len(a))
 
 def get_orfs(dna):
+	start_codons = ['ATG', 'GTG', 'TTG']
+	stop_codons = ['TAA', 'TGA', 'TAG']
 	# This is the object that holds all the orfs
 	my_orfs = Orfs()
 	my_orfs.seq = dna
@@ -150,7 +152,7 @@ def get_orfs(dna):
 	# find nucleotide frequency, kmers, and create gc frame plot
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	frame_plot = GCframe()
-	gc_content = GCcontent()
+	#gc_content = GCcontent()
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
@@ -168,7 +170,7 @@ def get_orfs(dna):
 		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
-		gc_content.add_base(base)
+		#gc_content.add_base(base)
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
@@ -177,27 +179,31 @@ def get_orfs(dna):
        	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
 	gc_pos_freq = frame_plot.get()
-	gc_con_freq = gc_content.get()
+	#gc_con_freq = gc_content.get()
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
 
 	# The dicts that will hold the start and stop codons
-	stops = {1:0, 2:0, 3:0, -1:0, -2:0, -3:0}
-	starts = {1:[0], 2:[0], 3:[0], -1:[0], -2:[0], -3:[0]}
-
+	stops = {1:0, 2:0, 3:0, -1:1, -2:2, -3:3}
+	starts = {1:[], 2:[], 3:[], -1:[], -2:[], -3:[]}
+	if dna[0:3] not in start_codons:
+		starts[1].append(1)
+	if dna[1:4] not in start_codons:
+		starts[2].append(2)
+	if dna[2:5] not in start_codons:
+		starts[3].append(3)
 
 	# Reset iterator and find all the open reading frames
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
 		frame = states.next()
-
-		if codon in ['ATG', 'GTG', 'TTG']:
+		if codon in start_codons:
 			starts[frame].append(i)
-		elif rev_comp(codon) in ['ATG', 'GTG', 'TTG']:
+		elif rev_comp(codon) in start_codons:
 			starts[-frame].append(i)
-		elif codon in ['TAA', 'TGA', 'TAG']:
+		elif codon in stop_codons:
 			for start in reversed(starts[frame]):
 				stop = i
 				length = stop-start+3
@@ -210,7 +216,7 @@ def get_orfs(dna):
 	
 			starts[frame] = []
 			stops[frame] = i
-		elif rev_comp(codon) in ['TAA', 'TGA', 'TAG']:
+		elif rev_comp(codon) in stop_codons:
 			for start in starts[-frame]:
 				stop = stops[-frame]
 				length = start-stop+3
@@ -260,8 +266,6 @@ def get_orfs(dna):
 			if(orf.start_codon() == 'ATG'):
 				start = orf.start
 				stop = orf.stop
-				loc_pos_max = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
-				loc_pos_min = [Decimal(0), Decimal(0), Decimal(0), Decimal(0)]
 				if(start < stop and stop-start):
 					n = ((stop-start)/8)*3
 					if(start == 0):

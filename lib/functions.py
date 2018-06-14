@@ -15,32 +15,6 @@ from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
 from gc_frame_content import GCcontent
-import kmeans
-
-
-def mean(data):
-    """Return the sample arithmetic mean of data."""
-    n = len(data)
-    if n < 1:
-        raise ValueError('mean requires at least one data point')
-    return sum(data)/n # in Python 2 use sum(data)/float(n)
-
-def _ss(data):
-    """Return sum of square deviations of sequence data."""
-    c = mean(data)
-    ss = sum((x-c)**2 for x in data)
-    return ss
-
-def stddev(data, ddof=0):
-    """Calculates the population standard deviation
-    by default; specify ddof=1 to compute the sample
-    standard deviation."""
-    n = len(data)
-    if n < 2:
-        raise ValueError('variance requires at least two data points')
-    ss = _ss(data)
-    pvar = ss/(n-ddof)
-    return pvar**0.5
 
 def rev_comp(seq):
 	seq_dict = {'A':'T','T':'A','G':'C','C':'G',
@@ -48,21 +22,6 @@ def rev_comp(seq):
 		    'R':'Y','Y':'R','S':'S','W':'W','K':'M','M':'K',
 		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
-
-def amino_acid_frequency(seq):
-	nucs = ['T', 'C', 'A', 'G']
-	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
-	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
-	codon_table = dict(zip(codons, amino_acids))
-
-	aa = dict()
-	aa['*'] = 0
-	for a in amino_acids:
-		aa[a] = 0
-	for i in range(0, len(seq)-5, 3):
-		aa[codon_table[seq[i:i+3]]] += 1
-		aa['*'] += 1
-	return aa
 
 def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
@@ -181,7 +140,7 @@ def score_rbs(seq):
 def ave(a):
 	return Decimal(sum(a)/len(a))
 
-def get_orfs(dna, id):
+def get_orfs(dna):
 	start_codons = ['ATG', 'GTG', 'TTG']
 	stop_codons = ['TAA', 'TGA', 'TAG']
 	# This is the object that holds all the orfs
@@ -297,39 +256,6 @@ def get_orfs(dna, id):
 				rbs_score = score_rbs(rev_comp(dna[start:start+21]))
 				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
-
-	
-	#for orf in my_orfs.iter_orfs():
-	for orfs in my_orfs.iter_in():
-	   	for orf in orfs:
-	 	  	H = 0.0
-	   		aa_freq = amino_acid_frequency(orf.seq)
-			for aa in freq_obs:
-				p = aa_freq[aa]
-				if(p):
-					H += p*log10(p)
-			s = []
-			for aa in freq_obs:
-				p = aa_freq[aa]
-				if(p):
-					s.append((1/H)*p*log10(p))
-				else:
-					s.append(0.0)
-			sys.stdout.write(str(orf.start)+"_"+str(orf.stop))
-			sys.stdout.write("\t")
-			sys.stdout.write(good[str(orf.end())])
-			sys.stdout.write("\t")
-			for a in s:
-				sys.stdout.write(str(a))
-				sys.stdout.write("\t")
-			#for a in freq_obs:
-			#	sys.stdout.write(str(aa_freq[a]/float(aa_freq['*'])))
-			#	sys.stdout.write("\t")
-			sys.stdout.write("\n")
-			
-	
-	sys.exit()
-
 
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)

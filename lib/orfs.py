@@ -85,6 +85,35 @@ class Orf:
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
 				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
+		self.aa = dict()
+		self.med = dict()
+
+		self.parse_seq()
+
+	def parse_seq(self):
+		#calculate the amino acid frequency
+		nucs = ['T', 'C', 'A', 'G']
+	   	codons = [a+b+c for a in nucs for b in nucs for c in nucs]
+	   	amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+	   	codon_table = dict(zip(codons, amino_acids))
+	   	for a in amino_acids:
+		 	self.aa[a] = Decimal(0)
+	   	for i in range(0, len(self.seq)-5, 3):
+		 	self.aa[codon_table[self.seq[i:i+3]]] += 1
+			self.aa['*'] += 1
+		#calculate the MED scores
+		H = Decimal(0)
+		for aa in list('ACDEFGHIKLMNPQRSTVWY'):
+			p = self.aa[aa]/self.aa['*']
+			#p = self.aa[aa]
+			if(p):
+				H += p*p.log10()
+		for aa in list('ACDEFGHIKLMNPQRSTVWY'):
+			p = self.aa[aa]/self.aa['*']
+			if(p):
+				self.med[aa] = (1/H)*p*p.log10()
+			else:
+				self.med[aa] = Decimal(0)
 	def score(self):
         	s = 1/self.hold
         	if(self.start_codon() in self.start_weight):

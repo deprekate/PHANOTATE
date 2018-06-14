@@ -14,6 +14,7 @@ from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
 from gc_content import GCcontent
+from kmeans import kmeans
 
 
 def rev_comp(seq):
@@ -181,14 +182,6 @@ def get_orfs(dna):
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
 
-	#Pstarts = Pa*Pt*Pg + Pg*Pt*Pg + Pc*Pt*Pg
-	#start_weight['ATG'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAT'] = (Decimal('0.85') * (Pa*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['GTG'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAC'] = (Decimal('0.10') * (Pg*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['TTG'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts))
-	#start_weight['CAA'] = (Decimal('0.05') * (Pc*Pt*Pg/Pstarts))/(Decimal('0.85') * (Pa*Pt*Pg/Pstarts)b
-	
 	# The dicts that will hold the start and stop codons
 	stops = {1:0, 2:0, 3:0, -1:0, -2:0, -3:0}
 	starts = {1:[0], 2:[0], 3:[0], -1:[0], -2:[0], -3:[0]}

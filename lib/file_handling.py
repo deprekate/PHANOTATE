@@ -1,6 +1,7 @@
 import sys
 import os.path
 import itertools
+import textwrap
 
 from edges import Edge
 from nodes import Node
@@ -27,8 +28,8 @@ def is_valid_file(x):
 	return x
 
 def get_args():
-	usage = 'thea.py [-opt1, [-opt2, ...]] infile'
-	parser = argparse.ArgumentParser(description='THEA: A phage genome annotator', formatter_class=RawTextHelpFormatter, usage=usage)
+	usage = 'phanotate.py [-opt1, [-opt2, ...]] infile'
+	parser = argparse.ArgumentParser(description='PHANOTATE: A phage genome annotator', formatter_class=RawTextHelpFormatter, usage=usage)
 
 	parser.add_argument('infile', type=is_valid_file, help='input file in fasta format')
 
@@ -66,19 +67,26 @@ def write_output(id, args, my_path, my_graph, G):
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
 		cutoff = -1/((1-G.pstop)**30)/3
-		#cutoff = -Decimal("1")
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
-				length = abs(right.position-left.position)/3
-				if(weight > cutoff):
-					continue
+				if(left.position == 0 and right.position == last_node.position):
+					left.position = abs(left.frame)
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+					left.position = '<' + str(left.position)
+				elif(left.position == 0):
+					left.position = '<' + str(((right.position+2)%3)+1)
+					right.position += 2
+				elif(right.position == last_node.position):
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+				else:
+					right.position += 2
 				if(left.type == 'start' and right.type == 'stop'):
-					outfile.write(str(left.position) + '\t' + str(right.position+2) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
 				elif(left.type == 'stop' and right.type == 'start'):
-					outfile.write(str(right.position+2) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
@@ -91,22 +99,41 @@ def write_output(id, args, my_path, my_graph, G):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
+			if(left.position == 0):
+				left.position = '<' + str(((right.position+2)%3)+1)
+			if(right.position == last_node.position):
+				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			else:
+				right.position += 2
 			outfile.write('     ' + left.gene.ljust(17))
 			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '..' + str(right.position+2) + '\n')
+				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write('complement(' + str(left.position) + '..' + str(right.position+2) + ')\n')
-		outfile.write('//\n')
+				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+		outfile.write('ORIGIN')
+		i = 0
+		dna = textwrap.wrap(G.seq, 10)
+		for block in dna:
+			if(i%60 == 0):
+				outfile.write('\n')
+				outfile.write(str(i+1).rjust(9))
+				outfile.write(' ')
+				outfile.write(block.lower())
+			else:
+				outfile.write(' ')
+				outfile.write(block.lower())
+			i += 10
+			
+		outfile.write('\n')	
+		outfile.write('//')
+		outfile.write('\n')
 	elif(outfmt == 'fasta'):
 		last_node = eval(my_path[-1])
-		cutoff = -1/((1-G.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
-				if(weight > cutoff):
-					continue
 				if(left.frame > 0):
 					o = G.get_orf(left.position, right.position)
 					if(right.position == last_node.position):

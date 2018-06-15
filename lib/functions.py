@@ -244,7 +244,7 @@ def get_orfs(dna):
 			length = start-stop+1
 			if(length >= my_orfs.min_orf_len):
 				seq = rev_comp(dna[max(0,stop-1):start])
-				rbs = rev_comp(dna[start+2:start+21])
+				rbs = rev_comp(dna[start:start+21])
 				rbs_score = score_rbs(rev_comp(dna[start:start+21]))
 				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1

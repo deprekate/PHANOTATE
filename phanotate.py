@@ -25,6 +25,9 @@ args = file_handling.get_args()
 #--------------------------------------------------------------------------------------------------#
 
 my_contigs = file_handling.read_fasta(args.infile);
+if not my_contigs:
+	sys.stdout.write("Error: no sequences found in infile\n")
+	sys.exit()
 
 #--------------------------------------------------------------------------------------------------#
 #                               MAIN ROUTINE                                                       #
@@ -49,6 +52,9 @@ for id, seq in my_contigs.items():
 		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
 	#sys.exit()
 	output = proc.communicate()[0].rstrip()
+	if(output[:5] == 'ERROR'):
+		print output
+		sys.exit()
 	my_path = output.split('\n')
 	
 	#Determine whether the first edge is a gap or an fragment open reading frame

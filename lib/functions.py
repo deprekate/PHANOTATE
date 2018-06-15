@@ -13,7 +13,6 @@ from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
-from gc_content import GCcontent
 from kmeans import kmeans
 
 
@@ -152,7 +151,6 @@ def get_orfs(dna):
 	# find nucleotide frequency, kmers, and create gc frame plot
 	frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 	frame_plot = GCframe()
-	#gc_content = GCcontent()
 	background_rbs = [1.0] * 28
 	training_rbs = [1.0] * 28
 
@@ -170,7 +168,6 @@ def get_orfs(dna):
 		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
-		#gc_content.add_base(base)
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
@@ -179,7 +176,6 @@ def get_orfs(dna):
        	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
 	gc_pos_freq = frame_plot.get()
-	#gc_con_freq = gc_content.get()
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]

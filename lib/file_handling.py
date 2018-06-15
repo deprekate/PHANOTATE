@@ -66,6 +66,7 @@ def write_output(id, args, my_path, my_graph, G):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
+		cutoff = -1/((1-G.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)

@@ -197,29 +197,29 @@ def get_orfs(dna):
 		if codon in start_codons:
 			starts[frame].append(i)
 		elif rev_comp(codon) in start_codons:
-			starts[-frame].append(i)
+			starts[-frame].append(i+2)
 		elif codon in stop_codons:
+			stop = i+2
 			for start in reversed(starts[frame]):
-				stop = i
-				length = stop-start+3
+				length = stop-start+1
 				if(length >= my_orfs.min_orf_len):
-					seq = dna[max(0,start-1):stop+2]
+					seq = dna[start-1:stop]
 					rbs = dna[start-21:start]
 					rbs_score = score_rbs(dna[start-21:start])
-					my_orfs.add_orf(start, stop, length, frame, seq, rbs, rbs_score)
+					my_orfs.add_orf(start, stop-2, length, frame, seq, rbs, rbs_score)
 					training_rbs[rbs_score] += 1
 	
 			starts[frame] = []
-			stops[frame] = i
+			stops[frame] = stop
 		elif rev_comp(codon) in stop_codons:
+			stop = stops[-frame]
 			for start in starts[-frame]:
-				stop = stops[-frame]
-				length = start-stop+3
+				length = start-stop+1
 				if(length >= my_orfs.min_orf_len):
-					seq = rev_comp(dna[max(0,stop-1):start+2])
-					rbs = rev_comp(dna[start+2:start+23])
-					rbs_score = score_rbs(rev_comp(dna[start+2:start+23]))
-					my_orfs.add_orf(start, stop, length, -frame, seq, rbs, rbs_score)
+					seq = rev_comp(dna[max(0,stop-1):start])
+					rbs = rev_comp(dna[start:start+21])
+					rbs_score = score_rbs(rev_comp(dna[start:start+21]))
+					my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 					training_rbs[rbs_score] += 1
 	
 			starts[-frame] = []
@@ -227,24 +227,26 @@ def get_orfs(dna):
 	# Add in any fragment ORFs at the end of the genome
 	for frame in [1, 2, 3]:
 		for start in reversed(starts[frame]):
-			stop = i+3
-			length = stop-start
+			stop = my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3)
+			length = stop-start+1
+			#stop = i+3
 			if(length >= my_orfs.min_orf_len):
-				seq = dna[max(0,start-1):stop+2]
+				seq = dna[max(0,start-1):stop]
 				rbs = dna[start-21:start]
 				rbs_score = score_rbs(dna[start-21:start])
-				my_orfs.add_orf(start, stop, length, frame, seq, rbs, rbs_score)
+				my_orfs.add_orf(start, stop-2, length, frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
-
-		starts[-frame].append(i+3)	
+		start = my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3)
+		if rev_comp(dna[start-3:start]) not in start_codons:
+			starts[-frame].append(my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3))	
 		for start in starts[-frame]:
 			stop = stops[-frame]
-			length = start-stop
+			length = start-stop+1
 			if(length >= my_orfs.min_orf_len):
-				seq = rev_comp(dna[max(0,stop-1):start+2])
-				rbs = rev_comp(dna[start+2:start+23])
-				rbs_score = score_rbs(rev_comp(dna[start+2:start+23]))
-				my_orfs.add_orf(start, stop, length, -frame, seq, rbs, rbs_score)
+				seq = rev_comp(dna[max(0,stop-1):start])
+				rbs = rev_comp(dna[start+2:start+21])
+				rbs_score = score_rbs(rev_comp(dna[start:start+21]))
+				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
 
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
@@ -263,16 +265,12 @@ def get_orfs(dna):
 				stop = orf.stop
 				if(start < stop):
 					n = ((stop-start)/8)*3
-					if(start == 0):
-						start = orf.frame
-					for base in range(start+3+n, min(stop-33, len(dna)-1), 3):
+					for base in range(start+n, stop-36, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				elif(stop < start):
 					n = ((start-stop)/8)*3
-					if(start >= len(dna)):
-						start = len(dna)-(stop%3)-2
-					for base in range(start-n, stop+33, -3):
+					for base in range(start-n, stop+36, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				break
@@ -286,15 +284,11 @@ def get_orfs(dna):
 		start = orf.start
 		stop = orf.stop
 		if(orf.frame > 0):
-			if(start == 0):
-				start = orf.frame
-			for base in range(start+3, min(stop,len(dna)-1), 3):
+			for base in range(start, stop, 3):
 				ind_max = max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				ind_min = min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
 		else:
-			if(start >= len(dna)):
-				start = len(dna)-(stop%3)-2
 			for base in range(start, stop, -3):
 				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])

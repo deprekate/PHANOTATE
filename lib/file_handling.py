@@ -58,7 +58,7 @@ def read_fasta(filepath):
 	if '' in my_contigs: del my_contigs['']
 	return my_contigs
 
-def write_output(id, args, my_path, my_graph, G):
+def write_output(id, args, my_path, my_graph, my_orfs):
 	outfmt = args.outfmt
 	outfile = args.outfile
 
@@ -66,27 +66,26 @@ def write_output(id, args, my_path, my_graph, G):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
-		cutoff = -1/((1-G.pstop)**30)/3
+		cutoff = -1/((1-my_orfs.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			if(left.gene == 'CDS'):
-				weight = my_graph.weight(Edge(left,right,0))
-				if(left.position == 0 and right.position == last_node.position):
-					left.position = abs(left.frame)
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-					left.position = '<' + str(left.position)
-				elif(left.position == 0):
-					left.position = '<' + str(((right.position+2)%3)+1)
-					right.position += 2
-				elif(right.position == last_node.position):
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				else:
-					right.position += 2
-				if(left.type == 'start' and right.type == 'stop'):
-					outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-				elif(left.type == 'stop' and right.type == 'start'):
-					outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			weight = my_graph.weight(Edge(left,right,0))
+			if(left.position == 0 and right.position == last_node.position):
+				left.position = abs(left.frame)
+				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+				left.position = '<' + str(left.position)
+			elif(left.position == 0):
+				left.position = '<' + str(((right.position+2)%3)+1)
+				right.position += 2
+			elif(right.position == last_node.position):
+				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			else:
+				right.position += 2
+			if(left.type == 'start' and right.type == 'stop'):
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			elif(left.type == 'stop' and right.type == 'start'):
+				outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
@@ -97,9 +96,15 @@ def write_output(id, args, my_path, my_graph, G):
 		outfile.write('FEATURES             Location/Qualifiers\n')
 		outfile.write('     source          1..' + str(last_node.position-1) + '\n')
 		for source, target in pairwise(my_path):
+			#get the orf
 			left = eval(source)
 			right = eval(target)
-			if(left.position == 0):
+			if(left.frame > 0):
+				orf = my_orfs.get_orf(left.position, right.position)
+			else:
+				orf = my_orfs.get_orf(right.position, left.position)
+			#properly display the orf
+			if(not orf.has_start() and not orf.has_stop()):
 				left.position = '<' + str(((right.position+2)%3)+1)
 			if(right.position == last_node.position):
 				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
@@ -112,7 +117,7 @@ def write_output(id, args, my_path, my_graph, G):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
 		outfile.write('ORIGIN')
 		i = 0
-		dna = textwrap.wrap(G.seq, 10)
+		dna = textwrap.wrap(my_orfs.seq, 10)
 		for block in dna:
 			if(i%60 == 0):
 				outfile.write('\n')
@@ -135,14 +140,14 @@ def write_output(id, args, my_path, my_graph, G):
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
 				if(left.frame > 0):
-					o = G.get_orf(left.position, right.position)
+					o = my_orfs.get_orf(left.position, right.position)
 					if(right.position == last_node.position):
 						right.position = left.position+3*int((right.position-left.position)/3)-1
 						outfile.write(id + "." + str(right.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
 					else:
 						outfile.write(id + "." + str(o.stop+2) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
 				else:
-					o = G.get_orf(right.position, left.position)
+					o = my_orfs.get_orf(right.position, left.position)
 					if(left.position == 0):
 						left.position = ((right.position+2)%3)+1
 						outfile.write(id + "." + str(left.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")

@@ -168,14 +168,13 @@ def get_orfs(dna):
 		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
+	gc_pos_freq = frame_plot.get()
 
 	Pa = frequency['A']/(my_orfs.contig_length*2)
 	Pt = frequency['T']/(my_orfs.contig_length*2)
 	Pg = frequency['G']/(my_orfs.contig_length*2)
 	Pc = frequency['C']/(my_orfs.contig_length*2)
-       	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
-
-	gc_pos_freq = frame_plot.get()
+	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
@@ -388,9 +387,15 @@ def get_graph(my_orfs):
 				else:
 					o2 = pgap
 				pstop = ave([o1, o2])
-			
+
+				#trna
+				if(left_node.gene == 'tRNA' or right_node.gene == 'tRNA'):
+					if((left_node.frame*right_node.frame > 0 and left_node.type != right_node.type) or (left_node.frame*right_node.frame < 0 and left_node.type == right_node.type)):
+						if not G.has_edge(Edge(left_node, right_node, 1)):
+							score = score_gap(r-l-3, 'same', pgap)
+							G.add_edge(Edge(left_node, right_node, score ))	
 				# same directions
-				if(left_node.frame*right_node.frame > 0):
+				elif(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
 							score = score_gap(r-l-3, 'same', pgap)
@@ -465,12 +470,14 @@ def add_trnas(my_orfs, G):
 		stop = int(column[3])
 		if(start < stop):
 			source = Node('tRNA', 'start', 4, start)
-			target = Node('tRNA', 'stop', 4, stop)
+			target = Node('tRNA', 'stop', 4, stop-2)
+			my_orfs.other_end['t'+str(stop-2)] = start
+			my_orfs.other_end['t'+str(start)] = stop-2
 		else:
-			source = Node('tRNA', 'start', -4, start)
-			target = Node('tRNA', 'stop', -4, stop)
-		G.add_edge(Edge(source, target, -Decimal(100)))
-		my_orfs.other_end['t'+str(start)] = stop
-		my_orfs.other_end['t'+str(stop)] = start
+			source = Node('tRNA', 'stop', -4, stop)
+			target = Node('tRNA', 'start', -4, start-2)
+			my_orfs.other_end['t'+str(start-2)] = stop
+			my_orfs.other_end['t'+str(stop)] = start-2
+		G.add_edge(Edge(source, target, -Decimal(20)))
 
 

@@ -261,14 +261,14 @@ def get_orfs(dna):
 			if(orf.start_codon() == 'ATG'):
 				start = orf.start
 				stop = orf.stop
-				if(start < stop and stop-start):
+				if(start < stop):
 					n = ((stop-start)/8)*3
 					if(start == 0):
 						start = orf.frame
 					for base in range(start+3+n, min(stop-33, len(dna)-1), 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
-				elif(stop and stop < start and start-stop):
+				elif(stop < start):
 					n = ((start-stop)/8)*3
 					if(start >= len(dna)):
 						start = len(dna)-(stop%3)-2
@@ -276,7 +276,6 @@ def get_orfs(dna):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 				break
-
 	# normalize to one
 	y = max(pos_max)
 	pos_max[:] = [x / y for x in pos_max]	

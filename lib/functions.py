@@ -13,7 +13,7 @@ from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
-from kmeans import kmeans
+#from kmeans import kmeans
 
 
 def rev_comp(seq):

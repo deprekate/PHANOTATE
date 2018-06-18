@@ -13,8 +13,12 @@ class KMeans():
 		self.n_init = n_init
 		self.max_iter = max_iter
 		self.tol = tol
+		self.points = []
+		self.labels = []
 		self.cluster_centers_ = []
-		self.labels_ = []
+
+	def add_point(self, coord, label):
+		self.points.append(Point(coord, label)
 
 	def fit(self, X):
 		points = []
@@ -130,16 +134,16 @@ class Point(object):
 	'''
 	A point in n dimensional space
 	'''
-	def __init__(self, coords, name):
+	def __init__(self, coord, label):
 		'''
-		coords - A list of values, one per dimension
+		coord - A list of values, one per dimension
 		'''
-		self.coords = coords
-		self.n = len(coords)
-		self.name = name
+		self.n = len(coord)
+		self.coord = coord
+		self.label = label
 
 	def __repr__(self):
-		return str(self.coords)
+		return str(self.coord)
 
 class Cluster(object):
 	'''
@@ -239,7 +243,7 @@ def getDistance(a, b):
 
 	accumulatedDifference = 0.0
 	for i in range(a.n):
-		squareDifference = pow((a.coords[i]-b.coords[i]), 2)
+		squareDifference = pow((a.coord[i]-b.coord[i]), 2)
 		accumulatedDifference += squareDifference
 
 	return accumulatedDifference

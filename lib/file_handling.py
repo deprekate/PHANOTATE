@@ -62,33 +62,29 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 	outfmt = args.outfmt
 	outfile = args.outfile
 
+	# set up the outformat
+	first_node = eval(my_path[0])
+	last_node = eval(my_path[-1])
 	if(outfmt == 'tabular'):
-		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
-		cutoff = -1/((1-my_orfs.pstop)**30)/3
+		#cutoff = -1/((1-my_orfs.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			weight = my_graph.weight(Edge(left,right,0))
-			if(left.position == 0 and right.position == last_node.position):
-				left.position = abs(left.frame)
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				left.position = '<' + str(left.position)
-			elif(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-				right.position += 2
-			elif(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			if(left.frame > 0):
+				orf = my_orfs.get_orf(left.position, right.position)
 			else:
-				right.position += 2
+				orf = my_orfs.get_orf(right.position, left.position)
+			right.position += 2
+			weight = orf.weight
+
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
-		last_node = eval(my_path[-1])
 		outfile.write('LOCUS       UNKNOWN')
 		outfile.write(str(last_node.position-1).rjust(10))
 		outfile.write(' bp    DNA             PHG\n')
@@ -99,17 +95,8 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			#get the orf
 			left = eval(source)
 			right = eval(target)
-			if(left.frame > 0):
-				orf = my_orfs.get_orf(left.position, right.position)
-			else:
-				orf = my_orfs.get_orf(right.position, left.position)
-			#properly display the orf
-			if(not orf.has_start() and not orf.has_stop()):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-			else:
-				right.position += 2
+			right.position += 2
+			#WRITE THE PROPER FORMAT
 			outfile.write('     ' + left.gene.ljust(17))
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
@@ -133,7 +120,6 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		outfile.write('//')
 		outfile.write('\n')
 	elif(outfmt == 'fasta'):
-		last_node = eval(my_path[-1])
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)

@@ -93,7 +93,7 @@ class Orf:
 		self.aa = dict()
 		self.med = dict()
 
-		self.parse_seq()
+		#self.parse_seq()
 
 	def parse_seq(self):
 		#calculate the amino acid frequency

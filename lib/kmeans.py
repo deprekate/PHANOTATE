@@ -13,12 +13,8 @@ class KMeans():
 		self.n_init = n_init
 		self.max_iter = max_iter
 		self.tol = tol
-		self.points = []
-		self.labels = []
 		self.cluster_centers_ = []
-
-	def add_point(self, coord, label):
-		self.points.append(Point(coord, label)
+		self.labels_ = []
 
 	def fit(self, X):
 		points = []
@@ -108,7 +104,7 @@ def kmeans(points, k, cutoff, initial_centroids=False):
 			lists[clusterIndex].append(p)
 
 		# Set our biggest_shift to zero for this iteration
-		biggest_shift = 0.0
+		biggest_shift = Decimal(0)
 
 		# For each cluster ...
 		for i in range(clusterCount):
@@ -134,16 +130,17 @@ class Point(object):
 	'''
 	A point in n dimensional space
 	'''
-	def __init__(self, coord, label):
+	def __init__(self, coords, name):
 		'''
-		coord - A list of values, one per dimension
+		coords - A list of values, one per dimension
 		'''
-		self.n = len(coord)
-		self.coord = coord
-		self.label = label
+
+		self.coords = coords
+		self.n = len(coords)
+		self.name = name
 
 	def __repr__(self):
-		return str(self.coord)
+		return str(self.coords)
 
 class Cluster(object):
 	'''
@@ -177,8 +174,6 @@ class Cluster(object):
 		String representation of this object
 		'''
 		return str(self.points)
-	def add_point(self, point):
-		self.points
 	def has_point(self, point):
 		'''
 		Check if cluster has point
@@ -214,7 +209,7 @@ class Cluster(object):
 		# Reformat that so all x's are together, all y'z etc.
 		unzipped = zip(*coords)
 		# Calculate the mean for each dimension
-		centroid_coords = [math.fsum(dList)/numPoints for dList in unzipped]
+		centroid_coords = [sum(dList)/numPoints for dList in unzipped]
 
 		return Point(centroid_coords, "CENTROID")
 
@@ -223,7 +218,7 @@ class Cluster(object):
 		Return the sum of all squared Euclidean distances between each point in 
 		the cluster and the cluster's centroid.
 		'''
-		sumOfDistances = 0.0
+		sumOfDistances = Decimal(0)
 		for p in self.points:
 			sumOfDistances += getDistance(p, self.centroid)
 
@@ -241,9 +236,9 @@ def getDistance(a, b):
 	if a.n != b.n:
 		raise Exception("ERROR: non comparable points")
 
-	accumulatedDifference = 0.0
+	accumulatedDifference = Decimal(0)
 	for i in range(a.n):
-		squareDifference = pow((a.coord[i]-b.coord[i]), 2)
+		squareDifference = pow((a.coords[i]-b.coords[i]), 2)
 		accumulatedDifference += squareDifference
 
 	return accumulatedDifference

@@ -72,12 +72,16 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			if(left.frame > 0):
+			if(left.gene == 'tRNA'):
+				pass
+				#weight = -10
+			elif(left.frame > 0):
 				orf = my_orfs.get_orf(left.position, right.position)
+				weight = orf.weight
 			else:
 				orf = my_orfs.get_orf(right.position, left.position)
+				weight = orf.weight
 			right.position += 2
-			weight = orf.weight
 
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')

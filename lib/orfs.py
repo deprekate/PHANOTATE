@@ -90,10 +90,10 @@ class Orf:
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
 				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
 				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
-		#self.aa = dict()
-		#self.med = dict()
+		self.aa = dict()
+		self.med = dict()
 
-		#self.parse_seq()
+		self.parse_seq()
 
 	def parse_seq(self):
 		#calculate the amino acid frequency

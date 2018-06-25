@@ -13,7 +13,7 @@ from graphs import Graph
 from gc_frame_plot import GCframe
 from gc_frame_plot import max_idx
 from gc_frame_plot import min_idx
-from kmeans import kmeans
+from kmeans import KMeans
 
 
 def rev_comp(seq):
@@ -249,6 +249,21 @@ def get_orfs(dna):
 				my_orfs.add_orf(start-2, stop, length, -frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
 
+
+	#-------------------------------Score ORFs based on aminoacid--------------------------------------#
+	'''
+	X = []
+	for orf in my_orfs.iter_orfs():
+		point = []
+		for aa in list('ARNDCEQGHILKMFPSTWYV'):
+			point.append(orf.med[aa])
+		X.append(point)
+	kmeans = KMeans(n_clusters=2).fit(X)
+	for i, orf in enumerate(my_orfs.iter_orfs()):
+		print kmeans.labels_[i], orf
+
+	sys.exit()
+'''
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]

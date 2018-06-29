@@ -139,6 +139,18 @@ class Orf:
 	def has_stop(self):
 		return self.stop_codon() in self.stop_codons
 
+	def beg(self):
+		if(self.frame > 0):
+			return self.start
+		else:
+			return self.start+2
+
+	def end(self):
+		if(self.frame > 0):
+			return self.stop+2
+		else:
+			return self.stop
+
 	def pp_stop(self):
 		frequency = [None]*4
 		frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0}

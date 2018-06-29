@@ -252,10 +252,6 @@ def get_orfs(dna):
 
 
 	#-------------------------------Score ORFs based on aminoacid--------------------------------------#
-	print "START", "STOP",
-	for aa in list('ARNDCEQGHILKMFPSTWYV'):
-		print aa,
-	print ""
 	X = []
 	for orf in my_orfs.iter_orfs():
 		point = []
@@ -266,16 +262,10 @@ def get_orfs(dna):
 
 	kmeans = KMeans(n_clusters=2).fit(X)
 	val, idx = min((val, idx) for (idx, val) in enumerate(kmeans.withinss_))
-	print val, idx
+	
 
-	print kmeans.labels_
-	print kmeans.withinss_
-	sys.exit()
 	for i, orf in enumerate(my_orfs.iter_orfs()):
-		print orf.start, orf.stop, #kmeans.labels_[i],
-		for aa in list('ARNDCEQGHILKMFPSTWYV'):
-			print orf.aa[aa]/orf.aa["*"],
-		print ""
+		print orf.beg(), orf.end(), kmeans.labels_[i]
 	#print kmeans.cluster_centers_
 
 	sys.exit()

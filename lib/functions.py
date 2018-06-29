@@ -5,6 +5,7 @@ import itertools
 import tempfile
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
+#from sklearn.cluster import KMeans
 
 from orfs import Orfs
 from nodes import Node
@@ -251,19 +252,33 @@ def get_orfs(dna):
 
 
 	#-------------------------------Score ORFs based on aminoacid--------------------------------------#
-	'''
+	print "START", "STOP",
+	for aa in list('ARNDCEQGHILKMFPSTWYV'):
+		print aa,
+	print ""
 	X = []
 	for orf in my_orfs.iter_orfs():
 		point = []
 		for aa in list('ARNDCEQGHILKMFPSTWYV'):
 			point.append(orf.med[aa])
 		X.append(point)
+		
+
 	kmeans = KMeans(n_clusters=2).fit(X)
+	val, idx = min((val, idx) for (idx, val) in enumerate(kmeans.withinss_))
+	print val, idx
+
+	print kmeans.labels_
+	print kmeans.withinss_
+	sys.exit()
 	for i, orf in enumerate(my_orfs.iter_orfs()):
-		print kmeans.labels_[i], orf
+		print orf.start, orf.stop, #kmeans.labels_[i],
+		for aa in list('ARNDCEQGHILKMFPSTWYV'):
+			print orf.aa[aa]/orf.aa["*"],
+		print ""
+	#print kmeans.cluster_centers_
 
 	sys.exit()
-'''
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	y = sum(training_rbs)
 	training_rbs[:] = [x/y for x in training_rbs]

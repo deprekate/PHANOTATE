@@ -7,7 +7,7 @@ import sys
 from decimal import Decimal
 
 class KMeans():
-	def __init__(self, n_clusters=2, init='random', n_init=10, max_iter=300, tol=0.1):
+	def __init__(self, n_clusters=2, init='random', n_init=10, max_iter=300, tol=Decimal("0.0001") ):
 		self.n_clusters = n_clusters
 		self.init = init
 		self.n_init = n_init
@@ -15,6 +15,7 @@ class KMeans():
 		self.tol = tol
 		self.cluster_centers_ = []
 		self.labels_ = []
+		self.withinss_ = []
 
 	def fit(self, X):
 		points = []
@@ -28,6 +29,7 @@ class KMeans():
 					)
 		for c in self.best_clusters:
 			self.cluster_centers_.append(c.centroid)
+			self.withinss_.append(c.getTotalDistance())
 		for p in points:
 			for i, c in enumerate(self.best_clusters):
 				if c.has_point(p):

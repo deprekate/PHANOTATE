@@ -64,4 +64,4 @@ target/
 .ipynb_checkpoints/
 
 # fastpath is its own repo
-fastpath
+fastpath/

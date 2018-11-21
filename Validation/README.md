@@ -14,7 +14,7 @@ We used [lastal](http://last.cbrc.jp/) to compare all the protein sequences we p
 
 We ran that computation on [Amazon Web Services](https://aws.amazon.com) as [described in "RunningSearches"](RunningSearches.md).
 
-This created 94,652 alignment files, one each with an output from lastal, and you can download a [tarball of all the data](https://edwards.sdsu.edu/data/phanotate_lastal.tgz).
+This created 94,652 alignment files, one each with an output from lastal, and you can download a [tarball of all the data](https://edwards.sdsu.edu/data/phanotate_lastal_alignments.tgz) (*Note:* this compressed archive file is 12 GB).
 
 We counted the sequence similarities in those files to determine how many predicted proteins were found in the different metagenomes. The output of those [counts are availble](count_types.tsv.gz) as a tab-separated values file. That file has three columns:
 

@@ -16,7 +16,7 @@ We ran that computation on [Amazon Web Services](https://aws.amazon.com) as [des
 
 This created 94,652 alignment files, one each with an output from lastal, and you can download a [tarball of all the data](https://edwards.sdsu.edu/data/phanotate_lastal_alignments.tgz) (*Note:* this compressed archive file is 12 GB).
 
-We counted the sequence similarities in those files to determine how many predicted proteins were found in the different metagenomes. The output of those [counts are availble](count_types.tsv.gz) as a tab-separated values file. That file has three columns:
+We counted the sequence similarities in those files to determine how many predicted proteins were found in the different metagenomes using [count hits per orf](count_hits_per_orf.pl). The output of those [counts are availble](count_types.tsv.gz) as a tab-separated values file. That file has three columns:
 
 1. the source gene caller &mdash; either ANY for one of the standard gene callers ([Prodigal](https://github.com/hyattpd/Prodigal) Prodigal, Glimmer[Glimmer](https://ccb.jhu.edu/software/glimmer/), and [GeneMarkS](http://exon.gatech.edu/GeneMark/)), NONE for a CDS that was not predicted to be a gene by any of the software, or PHAN for a CDS that was *only* predicted to be a gene by phanotate.
 2. The ID of the protein. This is in the format [RefSeq ID].[ORF Number] thus the ID NC\_000871.20269 is from [NC\_000871](https://www.ncbi.nlm.nih.gov/nuccore/9632893) and is ORF number 20,269 that we identified in that genome.

@@ -15,7 +15,7 @@ if(not os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz'):
 		sys.stderr.write("Error: fastpathz binary not found, did you type 'make'?\n")
 		sys.exit()
 #--------------------------------------------------------------------------------------------------#
-#                               ARGUEMENTS                                                         #
+#                               ARGUMENTS                                                          #
 #--------------------------------------------------------------------------------------------------#
 
 args = file_handling.get_args()
@@ -52,27 +52,13 @@ for id, seq in my_contigs.items():
 		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
 	#sys.exit()
 	output = proc.communicate()[0].rstrip()
-	if(output[:5] == 'ERROR'):
-		print output
-		sys.exit()
+	
 	my_path = output.split('\n')
 	
-	#remove the 0 node from the path and check that fastpath ran correctly
-	try:
-		my_path = my_path[1:]
-	except:
-		sys.stdout.write("Error running fastpathz: " + output + '\n')
- 
-
 	#-------------------------------Write Output ----------------------------------------------#
 	file_handling.write_output(id, args, my_path, my_graph, my_orfs)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #
 #--------------------------------------------------------------------------------------------------#
-
-
-
-
-
 

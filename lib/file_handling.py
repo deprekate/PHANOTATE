@@ -61,8 +61,14 @@ def read_fasta(filepath):
 def write_output(id, args, my_path, my_graph, my_orfs):
 	outfmt = args.outfmt
 	outfile = args.outfile
-
-	if(outfmt == 'tabular'):
+	
+	try:
+		my_path = my_path[1:]
+	except:
+		sys.stdout.write("Error running fastpathz: " + output + '\n')
+	if(not my_path):
+		outfile.write("#id:\t" + str(id[1:]) + " NO ORFS FOUND\n")
+	elif(outfmt == 'tabular'):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")

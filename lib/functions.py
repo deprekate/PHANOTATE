@@ -323,7 +323,7 @@ def get_graph(my_orfs):
 				try:
 					bases[n] = n
 				except:
-					print n
+					sys.stderr.write("error in breaking region"+str(n))
 			break
 	last = 0
 	for base in bases:

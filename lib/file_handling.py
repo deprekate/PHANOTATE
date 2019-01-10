@@ -95,7 +95,7 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
-		outfile.write('LOCUS       UNKNOWN')
+		outfile.write('LOCUS       ' + id[1:])
 		outfile.write(str(last_node.position-1).rjust(10))
 		outfile.write(' bp    DNA             PHG\n')
 		outfile.write('DEFINITION  ' + id[1:] + '\n')

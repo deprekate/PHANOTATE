@@ -193,7 +193,7 @@ def get_orfs(dna):
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
-		frame = states.next()
+		frame = next(states)
 		if codon in start_codons:
 			starts[frame].append(i)
 		elif rev_comp(codon) in start_codons:
@@ -264,12 +264,12 @@ def get_orfs(dna):
 				start = orf.start
 				stop = orf.stop
 				if(start < stop):
-					n = ((stop-start)/8)*3
+					n = int((stop-start)/8)*3
 					for base in range(start+n, stop-36, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				elif(stop < start):
-					n = ((start-stop)/8)*3
+					n = int((start-stop)/8)*3
 					for base in range(start-n, stop+36, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
@@ -444,7 +444,7 @@ def get_graph(my_orfs):
 #---------------------------------------END OF LOOP----------------------------------------------------------#
 
 def add_trnas(my_orfs, G):
-	f = tempfile.NamedTemporaryFile()
+	f = tempfile.NamedTemporaryFile(mode='wt')
 	f.write(">temp\n")
 	f.write(my_orfs.seq)
 	f.seek(0)

@@ -12,7 +12,7 @@ from decimal import Decimal
 
 def pairwise(iterable):
 	a = iter(iterable)
-	return itertools.izip(a, a)
+	return zip(a, a)
 
 class Range(object):
 	def __init__(self, start, end):

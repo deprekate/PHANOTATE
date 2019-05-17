@@ -47,11 +47,12 @@ for id, seq in my_contigs.items():
 		sys.stdout.write("Error running fastpathz. Did you run make to compile the binary?\n")
 		sys.exit()
 	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	if args.dump:
+		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n") for e in my_graph.iteredges()]
+		 sys.exit()
 	for e in my_graph.iteredges():
 		my_message = (repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
 		proc.stdin.write(my_message.encode('utf-8'))
-		#sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
-	#sys.exit()
 	raw_output = proc.communicate()[0].rstrip()
 	output = raw_output.decode('utf-8')
 	

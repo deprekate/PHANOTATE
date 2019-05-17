@@ -422,7 +422,7 @@ def get_graph(my_orfs):
 							score = score_gap(r-l-3, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
-							print(r_other, l, r, l_other)
+							#print(r_other, l, r, l_other)
 							if(r_other < l and r < l_other):
 								score = score_overlap(r-l+3, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	

@@ -67,7 +67,7 @@ class Orfs(dict):
 			else:
 				raise ValueError("orf with start codon not found")
 		else:
-			raise ValueError("orf with stop codon not found")
+			raise ValueError(str(start)+"_"+str(stop)+" orf with stop codon not found")
 
 class Orf:
 	def __init__(self, start, stop, length, frame, seq, rbs, rbs_score, start_codons, stop_codons):

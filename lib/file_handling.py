@@ -73,11 +73,12 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
-		cutoff = -1/((1-my_orfs.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			weight = my_graph.weight(Edge(left,right,0))
+			if(left.gene == 'tRNA'):
+				continue
 			if(left.position == 0 and right.position == last_node.position):
 				left.position = abs(left.frame)
 				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
@@ -106,6 +107,14 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			#get the orf
 			left = eval(source)
 			right = eval(target)
+			if(left.gene == 'tRNA' or right.gene == 'tRNA'):
+				outfile.write('     ' + left.gene.ljust(17))
+				if(left.frame > 0):
+					outfile.write(str(left.position) + '..' + str(right.position) + '\n')
+				else:
+					outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+				continue
+				
 			if(left.frame > 0):
 				orf = my_orfs.get_orf(left.position, right.position)
 			else:
@@ -144,6 +153,8 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
+			if(left.gene == 'tRNA'):
+				continue
 			if(left.frame > 0):
 				orf = my_orfs.get_orf(left.position, right.position)
 			else:

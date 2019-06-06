@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2019-06-06
+### Changed
+- Excluded tRNA gene calls from tabular and fasta output
+
+### Fixed
+- The reporting of tRNAs when the output format is genbank
+
 ## [1.1.0] - 2019-06-04
 ### Added
 - Change log

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - An error that was caused by connecting the wrong types of CDS and tRNA in the graph network
 
+### Added
+- Displaying the weights (scores) of ORFs in the genbank out file format
+
 ## [1.1.1] - 2019-06-06
 ### Changed
 - Excluded tRNA gene calls from tabular and fasta output

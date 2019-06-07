@@ -383,10 +383,17 @@ def get_graph(my_orfs):
 
 				#trna
 				if(left_node.gene == 'tRNA' or right_node.gene == 'tRNA'):
-					if((left_node.frame*right_node.frame > 0 and left_node.type != right_node.type) or (left_node.frame*right_node.frame < 0 and left_node.type == right_node.type)):
-						if not G.has_edge(Edge(left_node, right_node, 1)):
-							score = score_gap(r-l-3, 'same', pgap)
-							G.add_edge(Edge(left_node, right_node, score ))	
+					if(left_node.frame*right_node.frame > 0 and left_node.type != right_node.type):
+						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
+							if not G.has_edge(Edge(left_node, right_node, 1)):
+								score = score_gap(r-l-3, 'same', pgap)
+								G.add_edge(Edge(left_node, right_node, score ))	
+
+					elif(left_node.frame*right_node.frame < 0 and left_node.type == right_node.type):
+						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
+							if not G.has_edge(Edge(left_node, right_node, 1)):
+								score = score_gap(r-l-3, 'same', pgap)
+								G.add_edge(Edge(left_node, right_node, score ))	
 				# same directions
 				elif(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):

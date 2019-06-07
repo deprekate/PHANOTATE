@@ -107,8 +107,9 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			#get the orf
 			left = eval(source)
 			right = eval(target)
+			weight = my_graph.weight(Edge(left,right,0))
 			if(left.gene == 'tRNA' or right.gene == 'tRNA'):
-				outfile.write('     ' + left.gene.ljust(17))
+				outfile.write('     ' + left.gene.ljust(16))
 				if(left.frame > 0):
 					outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 				else:
@@ -126,11 +127,12 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 			else:
 				right.position += 2
-			outfile.write('     ' + left.gene.ljust(17))
+			outfile.write('     ' + left.gene.ljust(16))
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+			outfile.write('                     /note="weight=' + '{:.2E}'.format(weight) + ';"\n')
 		outfile.write('ORIGIN')
 		i = 0
 		dna = textwrap.wrap(my_orfs.seq, 10)

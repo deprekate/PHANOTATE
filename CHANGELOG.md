@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2019-06-06
+### Fixed
+- An error that was caused by connecting the wrong types of CDS and tRNA in the graph network
+
 ## [1.1.1] - 2019-06-06
 ### Changed
 - Excluded tRNA gene calls from tabular and fasta output

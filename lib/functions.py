@@ -458,13 +458,13 @@ def add_trnas(my_orfs, G):
 	f.seek(0)
 
 	try:
-		output = Popen(["tRNAscan-SE", "-B", "-q", "-b", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
+		output = Popen(["tRNAscan-SE", "-B", "-q", "--brief", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
 	except:
 		sys.stderr.write("Warning: tRNAscan not found, proceding without tRNA masking.\n")
 		return []
 
 	# Iterate over the trnas
-	for line in output.splitlines():
+	for line in output.decode().splitlines():
 		# Add in trna
 		column = line.split('\t')
 		start = int(column[2])

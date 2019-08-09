@@ -8,7 +8,7 @@ are beneficial paths, while gaps and overlaps are penalized paths.
 
 To install `PHANOTATE`,
 ```sh
- git clone --recursive git@github.com:deprekate/PHANOTATE.git
+ git clone --recursive https://github.com/deprekate/PHANOTATE.git
  cd PHANOTATE; make
 ```
 The current version of PHANOTATE relies on C binary "FastPathZ", from the project [FastPath](https://github.com/deprekate/fastpath), to 

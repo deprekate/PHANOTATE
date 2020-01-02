@@ -1,1 +1,1 @@
-*.gz filter=lfs diff=lfs merge=lfs -text
+Validation/* linguist-vendored

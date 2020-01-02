@@ -12,7 +12,7 @@ from decimal import Decimal
 
 def pairwise(iterable):
 	a = iter(iterable)
-	return itertools.izip(a, a)
+	return zip(a, a)
 
 class Range(object):
 	def __init__(self, start, end):
@@ -35,6 +35,7 @@ def get_args():
 
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
 	parser.add_argument('-f', '--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
+	parser.add_argument('-d', '--dump', action="store_true")
 
 	args = parser.parse_args()
 
@@ -72,11 +73,12 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		last_node = eval(my_path[-1])
 		outfile.write("#id:\t" + str(id[1:]) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
-		cutoff = -1/((1-my_orfs.pstop)**30)/3
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
 			weight = my_graph.weight(Edge(left,right,0))
+			if(left.gene == 'tRNA'):
+				continue
 			if(left.position == 0 and right.position == last_node.position):
 				left.position = abs(left.frame)
 				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
@@ -95,7 +97,7 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
-		outfile.write('LOCUS       UNKNOWN')
+		outfile.write('LOCUS       ' + id[1:])
 		outfile.write(str(last_node.position-1).rjust(10))
 		outfile.write(' bp    DNA             PHG\n')
 		outfile.write('DEFINITION  ' + id[1:] + '\n')
@@ -105,6 +107,15 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			#get the orf
 			left = eval(source)
 			right = eval(target)
+			weight = my_graph.weight(Edge(left,right,0))
+			if(left.gene == 'tRNA' or right.gene == 'tRNA'):
+				outfile.write('     ' + left.gene.ljust(16))
+				if(left.frame > 0):
+					outfile.write(str(left.position) + '..' + str(right.position) + '\n')
+				else:
+					outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+				continue
+				
 			if(left.frame > 0):
 				orf = my_orfs.get_orf(left.position, right.position)
 			else:
@@ -116,11 +127,12 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 			else:
 				right.position += 2
-			outfile.write('     ' + left.gene.ljust(17))
+			outfile.write('     ' + left.gene.ljust(16))
 			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
 			elif(left.type == 'stop' and right.type == 'start'):
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
+			outfile.write('                     /note="weight=' + '{:.2E}'.format(weight) + ';"\n')
 		outfile.write('ORIGIN')
 		i = 0
 		dna = textwrap.wrap(my_orfs.seq, 10)
@@ -143,23 +155,32 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
+			if(left.gene == 'tRNA'):
+				continue
+			if(left.frame > 0):
+				orf = my_orfs.get_orf(left.position, right.position)
+			else:
+				orf = my_orfs.get_orf(right.position, left.position)
 			if(left.gene == 'CDS'):
 				weight = my_graph.weight(Edge(left,right,0))
-				if(left.frame > 0):
-					o = my_orfs.get_orf(left.position, right.position)
-					if(right.position == last_node.position):
-						right.position = left.position+3*int((right.position-left.position)/3)-1
-						outfile.write(id + "." + str(right.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
-					else:
-						outfile.write(id + "." + str(o.stop+2) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
+				if(left.position == 0 and right.position == last_node.position):
+					left.position = abs(left.frame)
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+					left.position = '<' + str(left.position)
+				elif(left.position == 0):
+					left.position = '<' + str(((right.position+2)%3)+1)
+					right.position += 2
+				elif(right.position == last_node.position):
+					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
 				else:
-					o = my_orfs.get_orf(right.position, left.position)
-					if(left.position == 0):
-						left.position = ((right.position+2)%3)+1
-						outfile.write(id + "." + str(left.position) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
-					else:
-						outfile.write(id + "." + str(o.stop) + " START=" + str(o.start) + " SCORE=" + str(weight) + "\n")
-				outfile.write(o.seq)
+					right.position += 2
+				if(left.type == 'start' and right.type == 'stop'):
+					#outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(id + "." + str(right.position) + " [START=" + str(left.position) + "] [SCORE=" + str(weight) + "]\n")
+				elif(left.type == 'stop' and right.type == 'start'):
+					#outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+					outfile.write(id + "." + str(left.position) + " [START=" + str(right.position) + "] [SCORE=" + str(weight) + "]\n")
+				outfile.write(orf.seq)
 				outfile.write("\n")
 
 

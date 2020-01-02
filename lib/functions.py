@@ -193,7 +193,7 @@ def get_orfs(dna):
 	states = itertools.cycle([1, 2, 3])
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
-		frame = states.next()
+		frame = next(states)
 		if codon in start_codons:
 			starts[frame].append(i)
 		elif rev_comp(codon) in start_codons:
@@ -264,12 +264,12 @@ def get_orfs(dna):
 				start = orf.start
 				stop = orf.stop
 				if(start < stop):
-					n = ((stop-start)/8)*3
+					n = int((stop-start)/8)*3
 					for base in range(start+n, stop-36, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				elif(stop < start):
-					n = ((start-stop)/8)*3
+					n = int((start-stop)/8)*3
 					for base in range(start-n, stop+36, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
 						pos_min[min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
@@ -323,7 +323,7 @@ def get_graph(my_orfs):
 				try:
 					bases[n] = n
 				except:
-					print n
+					sys.stderr.write("error in breaking region"+str(n))
 			break
 	last = 0
 	for base in bases:
@@ -383,10 +383,17 @@ def get_graph(my_orfs):
 
 				#trna
 				if(left_node.gene == 'tRNA' or right_node.gene == 'tRNA'):
-					if((left_node.frame*right_node.frame > 0 and left_node.type != right_node.type) or (left_node.frame*right_node.frame < 0 and left_node.type == right_node.type)):
-						if not G.has_edge(Edge(left_node, right_node, 1)):
-							score = score_gap(r-l-3, 'same', pgap)
-							G.add_edge(Edge(left_node, right_node, score ))	
+					if(left_node.frame*right_node.frame > 0 and left_node.type != right_node.type):
+						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
+							if not G.has_edge(Edge(left_node, right_node, 1)):
+								score = score_gap(r-l-3, 'same', pgap)
+								G.add_edge(Edge(left_node, right_node, score ))	
+
+					elif(left_node.frame*right_node.frame < 0 and left_node.type == right_node.type):
+						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
+							if not G.has_edge(Edge(left_node, right_node, 1)):
+								score = score_gap(r-l-3, 'same', pgap)
+								G.add_edge(Edge(left_node, right_node, score ))	
 				# same directions
 				elif(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
@@ -411,7 +418,7 @@ def get_graph(my_orfs):
 				else:
 					if(left_node.type == 'stop' and right_node.type =='stop'):
 						if(right_node.frame > 0):
-							if(r_other < l and r < l_other):
+							if(r_other+3 < l and r < l_other):
 								score = score_overlap(r-l+3, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 						else:
@@ -422,6 +429,7 @@ def get_graph(my_orfs):
 							score = score_gap(r-l-3, 'diff', pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
+							#print(r_other, l, r, l_other)
 							if(r_other < l and r < l_other):
 								score = score_overlap(r-l+3, 'diff', pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
@@ -444,19 +452,19 @@ def get_graph(my_orfs):
 #---------------------------------------END OF LOOP----------------------------------------------------------#
 
 def add_trnas(my_orfs, G):
-	f = tempfile.NamedTemporaryFile()
+	f = tempfile.NamedTemporaryFile(mode='wt')
 	f.write(">temp\n")
 	f.write(my_orfs.seq)
 	f.seek(0)
 
 	try:
-		output = Popen(["tRNAscan-SE", "-B", "-q", "-b", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
+		output = Popen(["tRNAscan-SE", "-B", "-q", "--brief", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
 	except:
 		sys.stderr.write("Warning: tRNAscan not found, proceding without tRNA masking.\n")
 		return []
 
 	# Iterate over the trnas
-	for line in output.splitlines():
+	for line in output.decode().splitlines():
 		# Add in trna
 		column = line.split('\t')
 		start = int(column[2])

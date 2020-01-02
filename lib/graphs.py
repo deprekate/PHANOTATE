@@ -97,11 +97,11 @@ class Graph(dict):
 
     def iternodes(self):
         """Generate the nodes from the graph on demand."""
-        return self.iterkeys()
+        return self.keys()
 
     def iteradjacent(self, source):
         """Generate the adjacent nodes from the graph on demand."""
-        return self[source].iterkeys()
+        return self[source].keys()
 
     def iteroutedges(self, source):
         """Generate the outedges from the graph on demand."""
@@ -128,13 +128,13 @@ class Graph(dict):
     def show(self):
         """The graph presentation."""
         for source in self.iternodes():
-            print source, ":",
+            print(source, ":",)
             for edge in self.iteroutedges(source):
                 if edge.weight == 1:
-                    print edge.target,
+                    print(edge.target,)
                 else:
-                    print "%s(%s)" % (edge.target, edge.weight),
-            print
+                    print("%s(%s)" % (edge.target, edge.weight),)
+            print("\n")
 
     def copy(self):
         """Return the graph copy."""

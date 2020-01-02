@@ -38,7 +38,7 @@ class Orfs(dict):
 				yield self[stop][start]
 	def iter_in(self):
 		for stop in self.keys():
-			keylist = self[stop].keys()
+			keylist = list(self[stop].keys())
 			if(self[stop][keylist[0]].frame > 0):
 				keylist.sort()
 			else:
@@ -47,7 +47,7 @@ class Orfs(dict):
 			yield (self[stop][start] for start in keylist)
 	def iter_out(self):
 		for stop in self.keys():
-			keylist = self[stop].keys()
+			keylist = list(self[stop].keys())
 			if(self[stop][keylist[0]].frame > 0):
 				keylist.sort(reverse=True)
 			else:
@@ -55,7 +55,7 @@ class Orfs(dict):
 			yield (self[stop][start] for start in keylist)
 	def first_start(self, stop):
 		if stop in self:
-			list = sorted(self[stop].keys())
+			list = sorted(list(self[stop].keys()))
 			if(list[0] < stop):
 				return list[0]
 			else:
@@ -67,7 +67,7 @@ class Orfs(dict):
 			else:
 				raise ValueError("orf with start codon not found")
 		else:
-			raise ValueError("orf with stop codon not found")
+			raise ValueError(" orf with stop codon not found")
 
 class Orf:
 	def __init__(self, start, stop, length, frame, seq, rbs, rbs_score, start_codons, stop_codons):
@@ -145,7 +145,7 @@ class Orf:
 		frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0}
 		frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0}
 		count = [Decimal(0)]*4
-		states = itertools.cycle([1, 2, 3])	
+		states = itertools.cycle([1, 2, 3])
 		frame = states.next()
 		for _ in range(0,3-abs(self.stop-self.start)%3):
 			frame = states.next()

@@ -42,7 +42,7 @@ class GCframe:
 		self.freq =[]
 
 	def add_base(self, base):
-		frame = self.states.next()
+		frame = next(self.states)
 		self.bases[frame].append(base)
 		self.frequency[frame][base] += 1
 		item = self.bases[frame].popleft()

@@ -1,6 +1,6 @@
 /* 
 
-    phanotateconnect
+    phanotate_connect
 
     Copyright (C) 2020 Katelyn McNair and Robert Edwards
 
@@ -37,21 +37,40 @@ long double INFINITE = LDBL_MAX;
 int n = 0;
 int e = 0;
 
-struct my_edge {
-	int id;
-	int src;
-	int dst;
-	long double weight;
-	UT_hash_handle hh; 
+struct my_struct {
+    char key[255];                      /* key */
+    //int count;
+    int i;
+    UT_hash_handle hh;                  /* makes this structure hashable */
 };
-struct my_edge *edges = NULL;
 
-struct my_edge *get_edge(int edge_id){
-	struct my_edge *s;
+struct my_struct *nodes_left = NULL;    /* important! initialize to NULL */
+struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
 
-	HASH_FIND_INT( edges, &edge_id, s );
-	return s;
+void add_leftnode(char *key) {
+    struct my_struct *s;
+
+    s = malloc(sizeof(struct my_struct));
+    strcpy(s->key, key);
+    s->i = 1;
+
+    HASH_ADD_STR( nodes_left, key, s );  /* id: name of key field */
 }
+
+void add_rightnode(char *key) {
+    struct my_struct *s;
+
+    s = malloc(sizeof(struct my_struct));
+    strcpy(s->key, key);
+    s->i = 1;
+
+    HASH_ADD_STR( nodes_right, key, s );  /* id: name of key field */
+}
+//void delete_node(struct my_struct *key) {
+//    HASH_DEL(node_names, key);           /* user: pointer to deletee */
+//    free(key);                          /* optional; it's up to you! */
+//}
+
 
 struct my_node {
 	char key[256];
@@ -95,73 +114,53 @@ int add_node(char *node_name) {
 	return src;
 }
 
-void _add_edge(int edge_id, int src, int dst, long double weight) {
-	struct my_edge *s;
 
-	s = (struct my_edge*)malloc(sizeof(struct my_edge));
-	s->id = edge_id;
-	s->src = src;
-	s->dst = dst;
-	s->weight = weight;
-	HASH_ADD_INT( edges, id, s );
+void remove_newline(char *line){
+    int new_line = strlen(line) -1;
+    if (line[new_line] == '\n')
+        line[new_line] = '\0';
 }
 
 static PyObject* add_edge (PyObject* self, PyObject* args){
 	//void add_edge(int edge_id, int src, int dst, long double weight) {
-	char *token, *err;
-	int src, dst;
-	long double weight;
+	char *token;
 
 	char *edge_string;
 	if(!PyArg_ParseTuple(args, "s", &edge_string)) {
 		return NULL;
 	}
-
+	
 	// parse edge string
-	edge_string[strcspn(edge_string, "\n")] = 0;
+	remove_newline(edge_string);
 	token = strtok(edge_string, "\t");	
 	// source
-	src = add_node(token);
+	add_leftnode(token);
 	// destination
 	token = strtok(NULL, "\t");
-	dst = add_node(token);
-	// weight
-	token = strtok(NULL, "\t");
-	if( src>=0 && dst>=0 && token && (weight = strtold(token, &err)) ){
-		_add_edge(e, src, dst, weight);
-		e++;
-	}else{
-		PyErr_SetString(PyExc_ValueError, "Invalid edge");
-		return NULL;
-	}
+	add_rightnode(token);
 
 	Py_RETURN_NONE;
 }
 
 static PyObject* get_connected (PyObject* self, PyObject* args, PyObject *kwargs){
-	//(int argc, char *argv[]) {
 	struct my_struct *s1;
     struct my_struct *s2;
+	int min_distance = 300;
 
-	char *source, *target, *infile;
-
-	static char *kwlist[] = {(char *)"source", (char *)"target", (char *)"var", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|s", kwlist, &source, &target, &infile)) 
+	static char *kwlist[] = {"min_distance", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwlist, &min_distance)) 
 	{
 		return NULL;
 	}
 
+	PyObject *new_edges = PyList_New(0);
     // loop over all pairs
     for(s1=nodes_left; s1 != NULL; s1=s1->hh.next) {
         for(s2=nodes_right; s2 != NULL; s2=s2->hh.next) {
-            printf("%s\t%s\n", s1->key, s2->key);
+			PyList_Append(new_edges, Py_BuildValue("ssi", s1->key, s2->key, 0));
         }
     }
-
-	PyObject *path_list = PyList_New(0);
-	GetPath(parent, src, dst, path_list);
-   
-	return path_list;
+	return new_edges;
 }
 
 
@@ -186,7 +185,7 @@ void read_file(){
 
 // Our Modules Function Definition struct
 // We require this `NULL` to signal the end of our method
-static PyMethodDef phanotateconnect_methods[] = {
+static PyMethodDef phanotate_connect_methods[] = {
 	{ "get_connected", (PyCFunction) get_connected, METH_VARARGS | METH_KEYWORDS, "Returns the edges of connected orfs" },
 	{ "add_edge", (PyCFunction) add_edge, METH_VARARGS | METH_KEYWORDS, "Adds an edge to the graph" },
 	{ NULL, NULL, 0, NULL }
@@ -198,18 +197,18 @@ static struct PyModuleDef phanotate_connect = {
 	"phanotate_connect",
 	"mod doc",
 	-1,
-	phanotateconnect_methods
+	phanotate_connect_methods
 };
 // module initializer for python3
-PyMODINIT_FUNC PyInit_phanotateconnect(void)
+PyMODINIT_FUNC PyInit_phanotate_connect(void)
 {
 	return PyModule_Create(&phanotate_connect);
 }
 /*
 #else
  module initializer for python2
-PyMODINIT_FUNC initphanotateconnect() {
-	Py_InitModule3("phanotate_connect", phanotateconnect_methods, "mod doc");
+PyMODINIT_FUNC initphanotate_connect() {
+	Py_InitModule3("phanotate_connect", phanotate_connect_methods, "mod doc");
 }
 #endif
 */
@@ -224,7 +223,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Add a built-in module, before Py_Initialize */
-	PyImport_AppendInittab("phanotateconnect", PyInit_phanotateconnect);
+	PyImport_AppendInittab("phanotate_connect", PyInit_phanotate_connect);
 
 	/* Pass argv[0] to the Python interpreter */
 	Py_SetProgramName(program);
@@ -235,7 +234,7 @@ main(int argc, char *argv[])
 	/* Optionally import the module; alternatively,
            import can be deferred until the embedded script
            imports it. */
-	PyImport_ImportModule("phanotateconnect");
+	PyImport_ImportModule("phanotate_connect");
 
 	PyMem_RawFree(program);
 

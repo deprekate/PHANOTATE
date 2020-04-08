@@ -34,85 +34,39 @@
 
 long double INFINITE = LDBL_MAX;
 
-int n = 0;
-int e = 0;
 
 struct my_struct {
-    char key[255];                      /* key */
-    //int count;
-    int i;
+    //char key[255];                      /* key */
+	int key;
+    int value;
     UT_hash_handle hh;                  /* makes this structure hashable */
 };
 
 struct my_struct *nodes_left = NULL;    /* important! initialize to NULL */
 struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
 
-void add_leftnode(char *key) {
+void add_leftnode(int key, int value) {
     struct my_struct *s;
 
     s = malloc(sizeof(struct my_struct));
-    strcpy(s->key, key);
-    s->i = 1;
+    //strcpy(s->key, key);
+	s->key = key;
+    s->value = value;
 
-    HASH_ADD_STR( nodes_left, key, s );  /* id: name of key field */
+    HASH_ADD_INT( nodes_left, key, s );  /* id: name of key field */
 }
 
-void add_rightnode(char *key) {
+void add_rightnode(int key, int value) {
     struct my_struct *s;
 
     s = malloc(sizeof(struct my_struct));
-    strcpy(s->key, key);
-    s->i = 1;
+    //strcpy(s->key, key);
+	s->key = key;
+    s->value = value;
 
-    HASH_ADD_STR( nodes_right, key, s );  /* id: name of key field */
+    HASH_ADD_INT( nodes_right, key, s );  /* id: name of key field */
 }
-//void delete_node(struct my_struct *key) {
-//    HASH_DEL(node_names, key);           /* user: pointer to deletee */
-//    free(key);                          /* optional; it's up to you! */
-//}
 
-
-struct my_node {
-	char key[256];
-	int id;
-	UT_hash_handle hh;
-};
-struct my_node *nodes = NULL;
-
-struct my_name {
-	int id;
-	char value[256];
-	UT_hash_handle hh;
-};
-struct my_name *names = NULL;
-
-
-int add_node(char *node_name) {
-	struct my_node *node;
-	struct my_name *name;
-	int src;
-
-	if(!node_name){
-		return -1;
-	}
-	HASH_FIND_STR( nodes, node_name, node);
-	if(node == NULL){
-		node = (struct my_node*)malloc(sizeof(struct my_node));
-		name = (struct my_name*)malloc(sizeof(struct my_name));
-		strncpy(node->key, node_name, 256);
-		strncpy(name->value, node_name, 256);
-		node->id = n;
-		name->id = n;
-		HASH_ADD_STR( nodes, key, node );
-		HASH_ADD_INT( names, id, name );
-		src = n; 
-		n++;
-	}else{
-		src = node->id;
-	}
-
-	return src;
-}
 
 
 void remove_newline(char *line){
@@ -121,23 +75,19 @@ void remove_newline(char *line){
         line[new_line] = '\0';
 }
 
-static PyObject* add_edge (PyObject* self, PyObject* args){
+static PyObject* add_edge (PyObject* self, PyObject* args, int left_position, int right_position){
 	//void add_edge(int edge_id, int src, int dst, long double weight) {
-	char *token;
+	//char *token;
 
-	char *edge_string;
-	if(!PyArg_ParseTuple(args, "s", &edge_string)) {
+	//char *edge_string;
+	if(!PyArg_ParseTuple(args, "ii", &left_position, &right_position)) {
 		return NULL;
 	}
 	
-	// parse edge string
-	remove_newline(edge_string);
-	token = strtok(edge_string, "\t");	
 	// source
-	add_leftnode(token);
+	add_leftnode(left_position, right_position);
 	// destination
-	token = strtok(NULL, "\t");
-	add_rightnode(token);
+	add_rightnode(right_position, left_position);
 
 	Py_RETURN_NONE;
 }
@@ -154,10 +104,16 @@ static PyObject* get_connected (PyObject* self, PyObject* args, PyObject *kwargs
 	}
 
 	PyObject *new_edges = PyList_New(0);
+	int distance;
     // loop over all pairs
-    for(s1=nodes_left; s1 != NULL; s1=s1->hh.next) {
-        for(s2=nodes_right; s2 != NULL; s2=s2->hh.next) {
-			PyList_Append(new_edges, Py_BuildValue("ssi", s1->key, s2->key, 0));
+    for(s1=nodes_right; s1 != NULL; s1=s1->hh.next) {
+        for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
+			// this step is O(n2) so things have to be efficient
+			distance = s1->key - s2->key;
+			distance = (distance >= 0) ? distance : -distance;
+			if(distance <= 300 && s1->key != s2->value && s1->value != s2->key){
+				PyList_Append(new_edges, Py_BuildValue("iii", s1->key, s2->key, 0));
+			}
         }
     }
 	return new_edges;

@@ -14,6 +14,14 @@ class Edge:
         self.target = target
         self.weight = weight
 
+    def __str__(self):
+        """Compute the string representation of the edge."""
+        return "%s\t%s\t%s" % (
+                repr(self.source),
+                repr(self.target),
+				str(self.weight*100000)
+                )
+
     def __repr__(self):
         """Compute the string representation of the edge."""
         return "%s(%s, %s, %s)" % (

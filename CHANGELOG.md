@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2020-05-05
+### Changed
+- All changes in this version are merely optimization and organization, output should be identical to previous versions.
+- Reorganized phanotate into a package that installs via setup.py script or through pip
+- Coded up fastpath into a Cython pypi extension that is fetched and installed via pip
+- Renamed the modules folder
+
 ## [1.2.2] - 2019-09-08
 ### Fixed
 - An error that was caused by newer versions of tRNAscanSE using the -b flag to indicate a bed file, instead of the earlier versions where this flag was to output brief format.  Using the long arg --brief is compatible with all versions.  

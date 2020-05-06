@@ -6,13 +6,13 @@ import tempfile
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
 
-from orfs import Orfs
-from nodes import Node
-from edges import Edge
-from graphs import Graph
-from gc_frame_plot import GCframe
-from gc_frame_plot import max_idx
-from gc_frame_plot import min_idx
+from .orfs import Orfs
+from .nodes import Node
+from .edges import Edge
+from .graphs import Graph
+from .gc_frame_plot import GCframe
+from .gc_frame_plot import max_idx
+from .gc_frame_plot import min_idx
 #from kmeans import kmeans
 
 

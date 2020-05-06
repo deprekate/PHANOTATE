@@ -1,7 +1,7 @@
-from decimal import Decimal
 import sys
 import itertools
 from math import log10
+from decimal import Decimal
 
 class Orfs(dict):
 	"""The class holding the orfs"""

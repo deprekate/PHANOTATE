@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import random
-from edges import Edge
+from .edges import Edge
 
 
 class Graph(dict):

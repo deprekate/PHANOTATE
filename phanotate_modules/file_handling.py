@@ -2,13 +2,12 @@ import sys
 import os.path
 import itertools
 import textwrap
-
-from edges import Edge
-from nodes import Node
-from math import log
 import argparse
 from argparse import RawTextHelpFormatter
-from decimal import Decimal
+from math import log
+
+from phanotate_modules.edges import Edge
+from phanotate_modules.nodes import Node
 
 def pairwise(iterable):
 	a = iter(iterable)
@@ -22,6 +21,7 @@ class Range(object):
 		return '{0}-{1}'.format(self.start, self.end)
 	def __eq__(self, other):
 		return self.start <= other <= self.end
+
 def is_valid_file(x):
 	if not os.path.exists(x):
 		raise argparse.ArgumentTypeError("{0} does not exist".format(x))

@@ -7,9 +7,16 @@ find the optimal path through the six frames of the DNA where open reading frame
 are beneficial paths, while gaps and overlaps are penalized paths.
 
 To install `PHANOTATE`,
+```
+pip3 install phanotate
+```
+
+or
+
 ```sh
- git clone --recursive https://github.com/deprekate/PHANOTATE.git
- cd PHANOTATE; make
+ git clone https://github.com/deprekate/PHANOTATE.git
+ cd PHANOTATE
+ python3 setup.py install
 ```
 The current version of PHANOTATE relies on C binary "FastPathZ", from the project [FastPath](https://github.com/deprekate/fastpath), to 
 calculate the optimal path quickly.

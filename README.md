@@ -18,8 +18,7 @@ or
  cd PHANOTATE
  python3 setup.py install
 ```
-The current version of PHANOTATE relies on C binary "FastPathZ", from the project [FastPath](https://github.com/deprekate/fastpath), to 
-calculate the optimal path quickly.
+
 
 PHANOTATE Example
 --------------

@@ -3,12 +3,13 @@ import os
 import sys
 import getopt
 
-from subprocess import Popen, PIPE, STDOUT
+#from subprocess import Popen, PIPE, STDOUT
+import fastpath as fp
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__))+'/lib')
-import file_handling
-import functions
-from nodes import Node
+from modules import file_handling
+from modules import functions
+from modules.nodes import Node
+
 
 # Test if FastPath was compliled
 if(not os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz'):
@@ -34,32 +35,32 @@ if not my_contigs:
 #--------------------------------------------------------------------------------------------------#
 for id, seq in my_contigs.items():
 
-	#-------------------------------Create the Graph-------------------------------------------#
+	#-------------------------------Find the ORFs----------------------------------------------#
 	my_orfs = functions.get_orfs(seq)
 
+
+
+	#-------------------------------Create the Graph-------------------------------------------#
 	my_graph = functions.get_graph(my_orfs)
+
+
+
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(len(seq)+1) + ")"
-	try:
-		proc = Popen([os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz', '-s', source, '-t', target], stdout=PIPE, stdin=PIPE, stderr=PIPE)
-	except:
-		sys.stdout.write("Error running fastpathz. Did you run make to compile the binary?\n")
-		sys.exit()
 	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	for e in my_graph.iteredges():
+		ret = fp.add_edge(str(e))
+
+	shortest_path = fp.get_path(source=source, target=target)
+
 	if args.dump:
 		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n") for e in my_graph.iteredges()]
 		sys.exit()
-	for e in my_graph.iteredges():
-		my_message = (repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n")
-		proc.stdin.write(my_message.encode('utf-8'))
-	raw_output = proc.communicate()[0].rstrip()
-	output = raw_output.decode('utf-8')
-	
-	my_path = output.split('\n')
+
 	
 	#-------------------------------Write Output ----------------------------------------------#
-	file_handling.write_output(id, args, my_path, my_graph, my_orfs)
+	file_handling.write_output(id, args, shortest_path, my_graph, my_orfs)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

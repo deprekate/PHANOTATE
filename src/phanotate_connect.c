@@ -113,6 +113,7 @@ static PyObject* get_connected (PyObject* self, PyObject* args, PyObject *kwargs
 			distance = (distance >= 0) ? distance : -distance;
 			if(distance <= 300 && s1->key != s2->value && s1->value != s2->key){
 				PyList_Append(new_edges, Py_BuildValue("iii", s1->key, s2->key, 0));
+				//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
 			}
         }
     }

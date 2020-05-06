@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from lib.nodes import Node
+from modules.nodes import Node
 import phanotate_connect as pc
 
 class Orf:

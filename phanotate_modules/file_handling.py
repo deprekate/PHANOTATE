@@ -6,8 +6,8 @@ import argparse
 from argparse import RawTextHelpFormatter
 from math import log
 
-from modules.edges import Edge
-from modules.nodes import Node
+from phanotate_modules.edges import Edge
+from phanotate_modules.nodes import Node
 
 def pairwise(iterable):
 	a = iter(iterable)

@@ -6,15 +6,11 @@ import getopt
 #from subprocess import Popen, PIPE, STDOUT
 import fastpath as fp
 
-from modules import file_handling
-from modules import functions
-from modules.nodes import Node
+from phanotate_modules import file_handling
+from phanotate_modules import functions
+from phanotate_modules.nodes import Node
 
 
-# Test if FastPath was compliled
-if(not os.path.dirname(os.path.realpath(__file__))+'/fastpath/fastpathz'):
-		sys.stderr.write("Error: fastpathz binary not found, did you type 'make'?\n")
-		sys.exit()
 #--------------------------------------------------------------------------------------------------#
 #                               ARGUMENTS                                                          #
 #--------------------------------------------------------------------------------------------------#

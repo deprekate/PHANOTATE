@@ -49,6 +49,7 @@ def main():
 		],
 		python_requires='>3.5.2',
 		packages=find_packages(),
+		#py_modules=['phanotate'],
 		install_requires=['fastpath'],
 		ext_modules = [phanotate_connect_extension()]
 	)

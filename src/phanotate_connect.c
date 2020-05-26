@@ -26,6 +26,7 @@
 #include <string.h>
 #include <float.h>
 #include <getopt.h>
+#include "mini-gmp.h"
 #include "uthash.h"
 
 #if PY_MAJOR >= 3
@@ -35,36 +36,100 @@
 long double INFINITE = LDBL_MAX;
 
 
-struct my_struct {
-    //char key[255];                      /* key */
-	int key;
-    int value;
-    UT_hash_handle hh;                  /* makes this structure hashable */
-};
-
-struct my_struct *nodes_left = NULL;    /* important! initialize to NULL */
-struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
-
-void add_leftnode(int key, int value) {
-    struct my_struct *s;
-
-    s = malloc(sizeof(struct my_struct));
-    //strcpy(s->key, key);
-	s->key = key;
-    s->value = value;
-
-    HASH_ADD_INT( nodes_left, key, s );  /* id: name of key field */
+const char * remove_decimals(const char *str){
+        char *output;
+        int c, i, len;
+        for (i = 0; i < strlen(str); i++){
+                c = (unsigned char) str[i];
+                if(c == '.'){
+                        break;
+                }
+		len = i+1;
+        }
+        output = malloc(len+1);
+        strncpy(output, str, len);
+	output[len] = '\0';
+        return output;
 }
 
-void add_rightnode(int key, int value) {
-    struct my_struct *s;
+const char * expand_scinote(const char *str){
+        char *output, *ptr;
+        size_t int_size, exp_size, size;
+        const char *intptr, *expptr;
+        int i, c, offset;
 
-    s = malloc(sizeof(struct my_struct));
-    //strcpy(s->key, key);
+        int_size = 0;
+        offset = 0;
+        expptr = NULL;
+        for (i = 0; i < strlen(str); i++){
+                c = (unsigned char) str[i];
+                //printf("c: %c\n", c);
+                if(c == 'e' || c == 'E'){
+			if(str[i+1] == '-'){
+                                output = (char *) malloc(2);
+                                output[0] = '0';
+                                output[1] = '\0';
+                                return output;
+                        }
+                        expptr = str + i + 1;
+                        exp_size = i;
+                        if(!int_size){
+                                int_size = i;
+                        }
+                        break;
+                }else if(c == '.'){
+                        int_size = i;
+                }
+        }
+        size = int_size + strtol(expptr, &ptr, 10);
+        output = malloc(size + 1);
+	output[size] = '\0';
+
+        for(i = 0; i < size; i++){
+                output[i] = '0';
+        }
+        for(i = 0; i < int_size; i++){
+                output[i] = str[i];
+        }
+        for(i = int_size+1; i < exp_size; i++){
+                output[i-1] = str[i];
+        }
+        return output;
+}
+
+struct my_struct {
+	//char key[255];                      /* key */
+	int key;
+	//int value;
+	mpz_t weight;
+	UT_hash_handle hh;                  /* makes this structure hashable */
+};
+
+struct my_struct *nodes_left = NULL;        /* important! initialize to NULL */
+struct my_struct *nodes_right = NULL;       /* important! initialize to NULL */
+
+void add_leftnode(int key, mpz_t weight) {
+	struct my_struct *s;
+
+	s = malloc(sizeof(struct my_struct));
+	//strcpy(s->key, key);
 	s->key = key;
-    s->value = value;
+	mpz_init(s->weight);
+	mpz_set(s->weight, weight);
 
-    HASH_ADD_INT( nodes_right, key, s );  /* id: name of key field */
+	HASH_ADD_INT( nodes_left, key, s );  /* id: name of key field */
+}
+
+void add_rightnode(int key, mpz_t weight) {
+	struct my_struct *s;
+
+	s = malloc(sizeof(struct my_struct));
+	//strcpy(s->key, key);
+	s->key = key;
+	mpz_init(s->weight);
+	mpz_set(s->weight, weight);
+
+	HASH_ADD_INT( nodes_right, key, s );  /* id: name of key field */
 }
 
 
@@ -84,6 +149,15 @@ static PyObject* add_edge (PyObject* self, PyObject* args, int left_position, in
 		return NULL;
 	}
 	
+	// weight
+	mpz_init(weight);
+	if(strstr(token, "E") != NULL) {
+		mpz_set_str(weight, expand_scinote(token), 10);
+	}else{
+		mpz_set_str(weight, remove_decimals(token), 10);
+	}
+	mpz_clear(weight);
+
 	// source
 	add_leftnode(left_position, right_position);
 	// destination

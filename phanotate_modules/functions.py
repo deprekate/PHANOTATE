@@ -294,6 +294,7 @@ def get_orfs(dna):
 				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
 				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
 
+	
 	for orf in my_orfs.iter_orfs():
 		orf.score()
 		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight

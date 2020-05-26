@@ -95,6 +95,18 @@ class Orf:
 
 		#self.parse_seq()
 
+	def left(self):
+		if self.frame > 0:
+			return self.start
+		else:
+			return self.stop
+
+	def right(self):
+		if self.frame > 0:
+			return self.stop
+		else:
+			return self.start
+
 	def parse_seq(self):
 		#calculate the amino acid frequency
 		nucs = ['T', 'C', 'A', 'G']

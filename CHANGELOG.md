@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2020-05-25
+### Added
+- Missing MANIFEST.in file
+
 ## [1.3.0] - 2020-05-05
 ### Changed
 - All changes in this version are merely optimization and organization, output should be identical to previous versions.

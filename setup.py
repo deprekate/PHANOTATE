@@ -18,7 +18,7 @@ def phanotate_connect_extension():
 							 os.path.join(os.getcwd(), 'include'),
 				],
 				library_dirs = [os.getcwd(),],
-				sources = ['src/phanotate_connect.c'])
+				sources = ['src/phanotate_connect.c', 'src/mini-gmp.c'])
 	return ext
 
 def readme():

@@ -298,6 +298,9 @@ def get_orfs(dna):
 	for orf in my_orfs.iter_orfs():
 		orf.score()
 		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight
+	for orf in my_orfs.iter_orfs():
+		print(orf.left(), orf.right(), orf.pstop)
+	exit()
 	return my_orfs
 
 

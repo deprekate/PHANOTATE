@@ -39,6 +39,7 @@ long double INFINITE = LDBL_MAX;
 const char * remove_decimals(const char *str){
         char *output;
         int c, i, len;
+	len = 0;
         for (i = 0; i < strlen(str); i++){
                 c = (unsigned char) str[i];
                 if(c == '.'){
@@ -55,11 +56,12 @@ const char * remove_decimals(const char *str){
 const char * expand_scinote(const char *str){
         char *output, *ptr;
         size_t int_size, exp_size, size;
-        const char *intptr, *expptr;
-        int i, c, offset;
+        const char *expptr;
+        int i, c;
 
         int_size = 0;
-        offset = 0;
+	exp_size = 0;
+        //offset = 0;
         expptr = NULL;
         for (i = 0; i < strlen(str); i++){
                 c = (unsigned char) str[i];
@@ -100,34 +102,39 @@ const char * expand_scinote(const char *str){
 struct my_struct {
 	//char key[255];                      /* key */
 	int key;
-	//int value;
-	mpz_t weight;
+	int value;
+	//mpz_t weight;
+	double pstop;
 	UT_hash_handle hh;                  /* makes this structure hashable */
 };
 
 struct my_struct *nodes_left = NULL;        /* important! initialize to NULL */
 struct my_struct *nodes_right = NULL;       /* important! initialize to NULL */
 
-void add_leftnode(int key, mpz_t weight) {
+void add_leftnode(int key, int value, double pstop) {
 	struct my_struct *s;
 
 	s = malloc(sizeof(struct my_struct));
 	//strcpy(s->key, key);
 	s->key = key;
-	mpz_init(s->weight);
-	mpz_set(s->weight, weight);
+	s->value = value;
+	s->pstop = pstop;
+	//mpz_init(s->weight);
+	//mpz_set(s->weight, weight);
 
 	HASH_ADD_INT( nodes_left, key, s );  /* id: name of key field */
 }
 
-void add_rightnode(int key, mpz_t weight) {
+void add_rightnode(int key, int value, double pstop) {
 	struct my_struct *s;
 
 	s = malloc(sizeof(struct my_struct));
 	//strcpy(s->key, key);
 	s->key = key;
-	mpz_init(s->weight);
-	mpz_set(s->weight, weight);
+	s->value = value;
+	s->pstop = pstop;
+	//mpz_init(s->weight);
+	//mpz_set(s->weight, weight);
 
 	HASH_ADD_INT( nodes_right, key, s );  /* id: name of key field */
 }
@@ -140,28 +147,27 @@ void remove_newline(char *line){
         line[new_line] = '\0';
 }
 
-static PyObject* add_edge (PyObject* self, PyObject* args, int left_position, int right_position){
-	//void add_edge(int edge_id, int src, int dst, long double weight) {
-	//char *token;
+static PyObject* add_edge (PyObject* self, PyObject* args, int left_position, int right_position, double pstop){
+	//mpz_t weight;
 
 	//char *edge_string;
-	if(!PyArg_ParseTuple(args, "ii", &left_position, &right_position)) {
+	if(!PyArg_ParseTuple(args, "iid", &left_position, &right_position, &pstop)) {
 		return NULL;
 	}
 	
 	// weight
-	mpz_init(weight);
-	if(strstr(token, "E") != NULL) {
-		mpz_set_str(weight, expand_scinote(token), 10);
-	}else{
-		mpz_set_str(weight, remove_decimals(token), 10);
-	}
-	mpz_clear(weight);
+	//mpz_init(weight);
+	//if(strstr(weight_string, "E") != NULL) {
+	//	mpz_set_str(weight, expand_scinote(weight_string), 10);
+	//}else{
+	//	mpz_set_str(weight, remove_decimals(weight_string), 10);
+	//}
+	//mpz_clear(weight);
 
 	// source
-	add_leftnode(left_position, right_position);
+	add_leftnode(left_position, right_position, pstop);
 	// destination
-	add_rightnode(right_position, left_position);
+	add_rightnode(right_position, left_position, pstop);
 
 	Py_RETURN_NONE;
 }
@@ -186,7 +192,7 @@ static PyObject* get_connected (PyObject* self, PyObject* args, PyObject *kwargs
 			distance = s1->key - s2->key;
 			distance = (distance >= 0) ? distance : -distance;
 			if(distance <= 300 && s1->key != s2->value && s1->value != s2->key){
-				PyList_Append(new_edges, Py_BuildValue("iii", s1->key, s2->key, 0));
+				PyList_Append(new_edges, Py_BuildValue("iid", s1->key, s2->key, (s1->pstop + s2->pstop)/2));
 				//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
 			}
         }

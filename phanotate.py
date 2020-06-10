@@ -45,6 +45,7 @@ for id, seq in my_contigs.items():
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(len(seq)+1) + ")"
 	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	fp.empty_graph()
 	for e in my_graph.iteredges():
 		ret = fp.add_edge(str(e))
 
@@ -52,7 +53,7 @@ for id, seq in my_contigs.items():
 
 	if args.dump:
 		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n") for e in my_graph.iteredges()]
-		sys.exit()
+		continue #sys.exit()
 
 	
 	#-------------------------------Write Output ----------------------------------------------#

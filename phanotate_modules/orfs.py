@@ -15,8 +15,8 @@ class Orfs(dict):
 		self.start_codons = ['ATG', 'GTG', 'TTG']
 		self.stop_codons = ['TAA', 'TGA', 'TAG']
 
-	def add_orf(self, start, stop, length, frame, seq, rbs, rbs_score):
-		o = Orf(start, stop, length, frame, seq, rbs, rbs_score, self.start_codons, self.stop_codons)
+	def add_orf(self, start, stop, frame, seq, rbs):
+		o = Orf(start, stop, frame, seq, rbs, self.start_codons, self.stop_codons)
 		if stop not in self:
 			self[stop] = dict()
 			self[stop][start] = o
@@ -70,14 +70,13 @@ class Orfs(dict):
 			raise ValueError(" orf with stop codon not found")
 
 class Orf:
-	def __init__(self, start, stop, length, frame, seq, rbs, rbs_score, start_codons, stop_codons):
+	def __init__(self, start, stop, frame, seq, rbs, start_codons, stop_codons):
 		self.start = start
 		self.stop = stop
 		self.frame = frame
 		self.seq = seq
 		self.rbs = rbs
-		self.rbs_score = rbs_score
-		self.length = length
+		self.rbs_score = None
 		self.pstop = self.p_stop()
 		self.weight = 1
 		self.weight_start = 1

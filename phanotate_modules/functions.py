@@ -6,7 +6,7 @@ import tempfile
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
 
-import score_rbs
+import score_rbs as sr
 
 from .orfs import Orfs
 from .nodes import Node
@@ -47,7 +47,7 @@ def score_gap(length, direction, pgap):
 		score = score + (1/s)
 	return score
 
-def score_rbs0(seq):
+def score_rbs(seq):
 	s = seq[::-1]
 	score = 0
 
@@ -166,8 +166,8 @@ def get_orfs(dna):
 		frequency[base] += 1
 		frequency[rev_comp(base)] += 1
 		#kmers for rbs
-		#background_rbs[score_rbs(dna[i:i+21])] += 1
-		#background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
+		background_rbs[score_rbs(dna[i:i+21])] += 1
+		background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
 		#gc frame plot
 		frame_plot.add_base(base)
 	gc_pos_freq = frame_plot.get()
@@ -178,7 +178,7 @@ def get_orfs(dna):
 	Pc = frequency['C']/(my_orfs.contig_length*2)
 	my_orfs.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
-	rbs_scorer = score_rbs.ScoreXlationInit()
+	rbs_scorer = sr.ScoreXlationInit()
 	y = sum(background_rbs)
 	background_rbs[:] = [x/y for x in background_rbs]
 
@@ -244,13 +244,14 @@ def get_orfs(dna):
 				rbs = rev_comp(dna[start:start+21])
 				my_orfs.add_orf(start-2, stop, -frame, seq, rbs)
 
-	for orf in my_orfs.iter_orfs():
-		orf.weight_rbs = 2**rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
-	#y = sum(training_rbs)
-	#training_rbs[:] = [x/y for x in training_rbs]
 	#for orf in my_orfs.iter_orfs():
-	#	orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
+	#	orf.weight_rbs = 2**rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
+
+	y = sum(training_rbs)
+	training_rbs[:] = [x/y for x in training_rbs]
+	for orf in my_orfs.iter_orfs():
+		orf.weight_rbs = training_rbs[score_rbs(orf.rbs)] / background_rbs[score_rbs(orf.rbs)]
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]

@@ -51,7 +51,7 @@ for id, seq in my_contigs.items():
 	shortest_path = fp.get_path(source=source, target=target)
 
 	if args.dump:
-		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n") for e in my_graph.iteredges()]
+		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight) + "\n") for e in my_graph.iteredges()]
 		sys.exit()
 
 	

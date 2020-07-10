@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2020-07-09
+### Fixed
+- An error in the fastpath package that caused the best path not to be found if edges had large enough weights. This is because of rounding errors for long doubles, and that C cannot distinguish between 1E50 and 1E50 + 1
+### Changed
+- Switched from using fastpath to fastpathz, which uses infinite-precision integers
+
 ## [1.4.0] - 2020-06-10
 ### Fixed
 - An error in the fastpath package caused by not emptying out the graph between contigs, if the input file has more than one contig

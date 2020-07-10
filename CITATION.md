@@ -3,7 +3,5 @@
 If you use phanotate, please cite this paper:
 
 ```text
-McNair K, Zhou C, Souza B, Edwards R. 2018. THEA: A novel approach to gene identification in phage genomes. bioRxiv.
+Katelyn McNair, Carol Zhou, Elizabeth A Dinsdale, Brian Souza, Robert A Edwards, PHANOTATE: a novel approach to gene identification in phage genomes, Bioinformatics, Volume 35, Issue 22, 15 November 2019, Pages 4537–4542, https://doi.org/10.1093/bioinformatics/btz265
 ```
-
-We are working improving that paper and will have a new version soon. We hope to have the peer reviewed version published too, so a full citation will follow.

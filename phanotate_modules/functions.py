@@ -246,12 +246,14 @@ def get_orfs(dna):
 
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
 	#for orf in my_orfs.iter_orfs():
-	#	orf.weight_rbs = 2**rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
+	#	orf.weight_rbs = 1 + rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
 
-	y = sum(training_rbs)
-	training_rbs[:] = [x/y for x in training_rbs]
-	for orf in my_orfs.iter_orfs():
-		orf.weight_rbs = training_rbs[score_rbs(orf.rbs)] / background_rbs[score_rbs(orf.rbs)]
+	#for orf in my_orfs.iter_orfs():
+	#	training_rbs[score_rbs(orf.rbs)] += 1
+	#y = sum(training_rbs)
+	#training_rbs[:] = [x/y for x in training_rbs]
+	#for orf in my_orfs.iter_orfs():
+	#	orf.weight_rbs = training_rbs[score_rbs(orf.rbs)] / background_rbs[score_rbs(orf.rbs)]
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -295,7 +297,7 @@ def get_orfs(dna):
 	
 	for orf in my_orfs.iter_orfs():
 		orf.score()
-		#print orf.start, orf.stop, orf.pstop, 1/orf.hold, "sep", orf.rbs, orf.weight_rbs, orf.weight
+		#print(orf.start, orf.stop, orf.pstop, orf.hold, orf.rbs, orf.weight_rbs, orf.weight)
 	
 	return my_orfs
 

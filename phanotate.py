@@ -37,15 +37,18 @@ for id, seq in my_contigs.items():
 
 	#-------------------------------Find the ORFs----------------------------------------------#
 
-	from phanotate_modules.gc_frame_plot import GCFramePlot
-
-	fp = GCFramePlot(seq)
-	print(fp)
-	print(fp.min_frame_at(1))
-	print(fp.max_frame_at(1))
-	exit()
-
 	contig_orfs.parse_contig(seq)
+	
+	for orf in contig_orfs.iter_orfs():
+		start = orf.start
+		stop = orf.stop
+		if(orf.frame > 0):
+			print(start, stop)
+			gcfp = contig_orfs.gc_frame_plot
+			for base in range(start, stop, 3):
+				print(gcfp.min_frame_at(base), gcfp.max_frame_at(base))
+			exit()
+
 	exit()
 
 	contig_orfs.score_rbs_sites()

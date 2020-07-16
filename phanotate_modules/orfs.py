@@ -25,8 +25,7 @@ class Orfs(dict):
 		self.other_end = dict()
 		self.start_codons = ['ATG', 'GTG', 'TTG']
 		self.stop_codons = ['TAA', 'TGA', 'TAG']
-		self.gcframeplot_consensus_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
-		self.gcframeplot_consensus_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
+		self.gc_frame_plot = None
 
 	def add_orf(self, start, stop, frame, seq, rbs):
 		if len(seq) < self.min_orf_len: return
@@ -108,26 +107,17 @@ class Orfs(dict):
 
 	def parse_contig(self, dna):
 		self.seq = dna
+
+		self.gc_frame_plot = GCFramePlot(dna)
 	
-		# find nucleotide frequency, kmers, and create gc frame plot
-		frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
-		frame_plot = GCframe()
+
 		#background_rbs = [1.0] * 28
 		#training_rbs = [1.0] * 28
-
+		# find nucleotide frequency
+		frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
 		for i, base in enumerate(dna):
-			# nucleotide frequency
 			frequency[base] += 1
 			frequency[rev_comp(base)] += 1
-			#kmers for rbs
-			#background_rbs[score_rbs(dna[i:i+21])] += 1
-			#background_rbs[score_rbs(rev_comp(dna[i:i+21]))] += 1
-			#gc frame plot
-			#frame_plot.add_base(base)
-		#gc_pos_freq = frame_plot.get()
-		print(dna[1:10])
-		if 1: return 
-	
 		Pa = frequency['A'] / (2*self.contig_length())
 		Pt = frequency['T'] / (2*self.contig_length())
 		Pg = frequency['G'] / (2*self.contig_length())

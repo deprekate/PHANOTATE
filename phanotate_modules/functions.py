@@ -12,7 +12,7 @@ from .orfs import Orfs
 from .nodes import Node
 from .edges import Edge
 from .graphs import Graph
-from .gc_frame_plot import GCframe
+from .gc_frame_plot import GCFramePlot
 from .gc_frame_plot import max_idx
 from .gc_frame_plot import min_idx
 #from sklearn.cluster import KMeans

@@ -37,9 +37,9 @@ for id, seq in my_contigs.items():
 
 	#-------------------------------Find the ORFs----------------------------------------------#
 
-	from phanotate_modules.gc_frame_plot import GCframe
+	from phanotate_modules.gc_frame_plot import GCFramePlot
 
-	fp = GCframe(seq)
+	fp = GCFramePlot(seq)
 	print(fp)
 	print(fp.min_frame_at(1))
 	print(fp.max_frame_at(1))

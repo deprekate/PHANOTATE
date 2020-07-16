@@ -4,7 +4,7 @@ from math import log10
 from decimal import Decimal
 
 from .kmeans import KMeans
-from .gc_frame_plot import GCframe
+from .gc_frame_plot import GCFramePlot
 
 
 def rev_comp(seq):

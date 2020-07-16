@@ -1,7 +1,5 @@
 from __future__ import division
 from collections import deque
-from decimal import Decimal
-import sys
 import itertools
 
 
@@ -24,9 +22,10 @@ def max_idx(a, b, c):
 	return 0
 
 
-class GCframe(list):
+class GCFramePlot(list):
 	def __init__(self, seq=None, window = 120):
 		if seq and len(seq) < window:
+			# this is to allow for small metagenomic like sequences
 			self.window = len(seq) // 3 // 2 * 2
 		else:
 			self.window = window//3
@@ -67,15 +66,18 @@ class GCframe(list):
 			self.max_frame.append( max_idx(a,b,c) )
 		
 	def _close(self):
+		# this is to pop off the first half-window and add the last half-window
 		for _ in range(self.window//2):
 			for frame in [1,2,3]:
 				self.total[frame].popleft()
 				item = self.bases[frame].popleft()
 				self.frequency[frame][item] -= 1
 				self.total[frame].append(self.frequency[frame]['G'] + self.frequency[frame]['C'])
+
 		# this is to set the arrays for one-based indexing to match fasta/genbank
 		self.add( 0, 0, 0 )
-		# calculate the index of the min/max gc content frame
+
+		# this calculates the index of the min/max gc content frame
 		for i in range(len(self.total[3])-1):
 			self.add( self.total[1][i], self.total[2][i],   self.total[3][i]   )
 			self.add( self.total[2][i], self.total[3][i],   self.total[1][i+1] )

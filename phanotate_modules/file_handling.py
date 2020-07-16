@@ -42,22 +42,23 @@ def get_args():
 	return args
 
 
-def read_fasta(filepath):
-	my_contigs = dict()
+def read_fasta(filepath, base_trans=str.maketrans('','')):
+	contigs_dict = dict()
 	name = ''
 	seq = ''
-	with open(filepath, mode="r") as my_file:
-		for line in my_file:
-			if(line.startswith(">")):
-				my_contigs[name] = seq
+	with open(filepath, mode="r") as f:
+		for line in f:
+			if line.startswith(">"):
+				contigs_dict[name] = seq
 				name = line.split()[0]
 				seq = ''
 			else:
-				seq += line.replace("\n", "").upper()
-		my_contigs[name] = seq
+				#seq += line.replace("\n", "").upper()
+				seq += line[:-1].upper()
+		contigs_dict[name] = seq.translate(base_trans)
 
-	if '' in my_contigs: del my_contigs['']
-	return my_contigs
+	if '' in contigs_dict: del contigs_dict['']
+	return contigs_dict
 
 def write_output(id, args, my_path, my_graph, my_orfs):
 	outfmt = args.outfmt

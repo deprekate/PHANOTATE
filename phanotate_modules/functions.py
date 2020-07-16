@@ -15,7 +15,7 @@ from .graphs import Graph
 from .gc_frame_plot import GCframe
 from .gc_frame_plot import max_idx
 from .gc_frame_plot import min_idx
-#from kmeans import kmeans
+#from sklearn.cluster import KMeans
 
 
 def rev_comp(seq):
@@ -243,10 +243,12 @@ def get_orfs(dna):
 				seq = rev_comp(dna[max(0,stop-1):start])
 				rbs = rev_comp(dna[start:start+21])
 				my_orfs.add_orf(start-2, stop, -frame, seq, rbs)
+	return my_orfs
 
+def score_rbs_sites(my_orfs):
 	#-------------------------------Score ORFs based on RBS motif--------------------------------------#
-	#for orf in my_orfs.iter_orfs():
-	#	orf.weight_rbs = 1 + rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
+	for orf in my_orfs.iter_orfs():
+		orf.weight_rbs = 1 + rbs_scorer.score_init_rbs(orf.rbs, 20)[0]
 
 	#for orf in my_orfs.iter_orfs():
 	#	training_rbs[score_rbs(orf.rbs)] += 1
@@ -255,6 +257,8 @@ def get_orfs(dna):
 	#for orf in my_orfs.iter_orfs():
 	#	orf.weight_rbs = training_rbs[score_rbs(orf.rbs)] / background_rbs[score_rbs(orf.rbs)]
 
+
+def score_orf_weights(my_orfs):
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 	pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
@@ -264,11 +268,13 @@ def get_orfs(dna):
 				start = orf.start
 				stop = orf.stop
 				if(start < stop):
+					if orf.stop not in good: continue
 					n = int((stop-start)/8)*3
 					for base in range(start+n, stop-36, 3):
 						pos_max[max_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 						pos_min[min_idx(gc_pos_freq[base][0],gc_pos_freq[base][1],gc_pos_freq[base][2])] += 1
 				elif(stop < start):
+					if orf.stop not in good: continue
 					n = int((start-stop)/8)*3
 					for base in range(start-n, stop+36, -3):
 						pos_max[max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])] += 1
@@ -279,7 +285,7 @@ def get_orfs(dna):
 	pos_max[:] = [x / y for x in pos_max]	
 	y = max(pos_min)
 	pos_min[:] = [x / y for x in pos_min]	
-
+	
 	for orf in my_orfs.iter_orfs():
 		start = orf.start
 		stop = orf.stop

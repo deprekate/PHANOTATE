@@ -9,6 +9,7 @@ import fastpathz as fz
 from phanotate_modules import file_handling
 from phanotate_modules import functions
 from phanotate_modules.nodes import Node
+from phanotate_modules.orfs import Orfs
 
 
 #--------------------------------------------------------------------------------------------------#
@@ -21,7 +22,8 @@ args = file_handling.get_args()
 #                               FILE INPUT                                                         #
 #--------------------------------------------------------------------------------------------------#
 
-my_contigs = file_handling.read_fasta(args.infile);
+base_trans = str.maketrans('SBVDEFHIJKLMNOPQRUWXYZ','GGGAAAAAAAAAAAAAAAAAAA')
+my_contigs = file_handling.read_fasta(args.infile, base_trans)
 if not my_contigs:
 	sys.stdout.write("Error: no sequences found in infile\n")
 	sys.exit()
@@ -31,24 +33,41 @@ if not my_contigs:
 #--------------------------------------------------------------------------------------------------#
 for id, seq in my_contigs.items():
 
-	#-------------------------------Find the ORFs----------------------------------------------#
-	my_orfs = functions.get_orfs(seq)
+	contig_orfs = Orfs(**vars(args))
 
+	#-------------------------------Find the ORFs----------------------------------------------#
+
+	from phanotate_modules.gc_frame_plot import GCframe
+
+	fp = GCframe(seq)
+	print(fp)
+	print(fp.min_frame_at(1))
+	print(fp.max_frame_at(1))
+	exit()
+
+	contig_orfs.parse_contig(seq)
+	exit()
+
+	contig_orfs.score_rbs_sites()
+
+	contig_orfs.calculate_weights(my_orfs)
 
 
 	#-------------------------------Create the Graph-------------------------------------------#
 	my_graph = functions.get_graph(my_orfs)
 
 
+
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(len(seq)+1) + ")"
-	# Write edges to the fastpath program
-	if args.dump:
-		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight) + "\n") for e in my_graph.iteredges()]
-		sys.exit()
+	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	fz.empty_graph()
 	for e in my_graph.iteredges():
+		if args.dump: print(e)
 		ret = fz.add_edge(str(e))
+
+	if args.dump: sys.exit()
 
 	shortest_path = fz.get_path(source=source, target=target)
 

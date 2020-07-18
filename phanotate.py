@@ -32,12 +32,15 @@ if not my_contigs:
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
 for id, seq in my_contigs.items():
-
+	print("#id:", id[1:], sep='\t')
 	contig_orfs = Orfs(**vars(args))
 
 	#-------------------------------Find the ORFs----------------------------------------------#
 
 	contig_orfs.parse_contig(seq)
+	for orf in contig_orfs.iter_orfs():
+		print(orf.left(), orf.right(), orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.weight, sep='\t')
+	exit()
 	
 	for orf in contig_orfs.iter_orfs():
 		start = orf.start
@@ -46,8 +49,11 @@ for id, seq in my_contigs.items():
 			print(start, stop)
 			gcfp = contig_orfs.gc_frame_plot
 			for base in range(start, stop, 3):
-				print(gcfp.min_frame_at(base), gcfp.max_frame_at(base))
-			exit()
+				print(gcfp.max_frame_at(base), end='')
+			print()
+			for base in range(start, stop, 3):
+				print(gcfp.min_frame_at(base), end='')
+			print()
 
 	exit()
 

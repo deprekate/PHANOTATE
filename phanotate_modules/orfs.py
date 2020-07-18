@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from .kmeans import KMeans
 from .gc_frame_plot import GCFramePlot
+from score_rbs import ScoreXlationInit
 
 
 def rev_comp(seq):
@@ -14,23 +15,44 @@ def rev_comp(seq):
 		    'B':'V','V':'B','D':'H','H':'D'}
 	return "".join([seq_dict[base] for base in reversed(seq)])
 
+def pstop(seq):
+	length = Decimal(len(seq))
+	Pa = seq.count('A') / (length)
+	Pt = seq.count('T') / (length)
+	Pg = seq.count('G') / (length)
+	Pc = seq.count('C') / (length)
+	return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
+	
+
 class Orfs(dict):
 	"""The class holding the orfs"""
 	def __init__(self, n=0, **kwargs):
 		self.__dict__.update(kwargs)
 		self.n = n
-		self.seq = None
+		self.dna = None
 		self.pstop = None
 		self.min_orf_len = 90
 		self.other_end = dict()
 		self.start_codons = ['ATG', 'GTG', 'TTG']
 		self.stop_codons = ['TAA', 'TGA', 'TAG']
+		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
+							 'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
+							 'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
 		self.gc_frame_plot = None
+		self.rbs_scorer = ScoreXlationInit()
+
+	def score_rbs(self, seq):
+		return 1 + self.rbs_scorer.score_init_rbs(seq, 20)[0]
+
+	def seq(self, a, b):
+			return self.dna[ a-1 : b ]
 
 	def add_orf(self, start, stop, frame, seq, rbs):
+		""" Adds an orf to the factory"""
 		if len(seq) < self.min_orf_len: return
 
-		o = Orf(start, stop, frame, seq, rbs, self.start_codons, self.stop_codons)
+		o = Orf(start, stop, frame, self)
+
 		if stop not in self:
 			self[stop] = dict()
 			self[stop][start] = o
@@ -84,7 +106,7 @@ class Orfs(dict):
 			raise ValueError(" orf with stop codon not found")
 
 	def contig_length(self):
-		return len(self.seq)
+		return len(self.dna)
 	
 	def end(self, frame):
 		return self.contig_length() - ((self.contig_length() - (frame-1))%3)
@@ -106,7 +128,8 @@ class Orfs(dict):
 		#print kmeans.cluster_centers_
 
 	def parse_contig(self, dna):
-		self.seq = dna
+		self.dna = dna
+		self.pstop = pstop(self.dna + rev_comp(self.dna))
 
 		self.gc_frame_plot = GCFramePlot(dna)
 	
@@ -114,15 +137,6 @@ class Orfs(dict):
 		#background_rbs = [1.0] * 28
 		#training_rbs = [1.0] * 28
 		# find nucleotide frequency
-		frequency = {'A':Decimal(0), 'T':Decimal(0), 'C':Decimal(0), 'G':Decimal(0)}
-		for i, base in enumerate(dna):
-			frequency[base] += 1
-			frequency[rev_comp(base)] += 1
-		Pa = frequency['A'] / (2*self.contig_length())
-		Pt = frequency['T'] / (2*self.contig_length())
-		Pg = frequency['G'] / (2*self.contig_length())
-		Pc = frequency['C'] / (2*self.contig_length())
-		self.pstop = (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 	
 		#y = sum(background_rbs)
 		#background_rbs[:] = [x/y for x in background_rbs]
@@ -184,32 +198,66 @@ class Orfs(dict):
 		pass
 		
 	
-	
 class Orf:
-	def __init__(self, start, stop, frame, seq, rbs, start_codons, stop_codons):
+	def __init__(self, start, stop, frame, parent): #, frame, seq=None, rbs=None, start_codons=None, stop_codons=None):
 		self.start = start
 		self.stop = stop
 		self.frame = frame
-		self.seq = seq
-		self.rbs = rbs
-		self.rbs_score = None
-		self.pstop = self.p_stop()
-		self.weight = 1
-		self.weight_start = 1
-		self.weight_rbs = 1
-		self.hold = 1
-		self.gcfp_mins = 1
-		self.gcfp_maxs = 1
-		self.start_codons = start_codons
-		self.stop_codons = stop_codons
-		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
-				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
+		self.parent = parent
+		self.weight = self.weight()
+		self.dna = self.dna()
+		self.rbs = self.rbs()
+		self.pstop = pstop(self.dna)
+		self.pnots = 1 - self.pstop
+		'''
+		self.scores = dict()
 		self.aa = dict()
 		self.med = dict()
 		self.good = 0
 
 		self.parse_seq()
+		'''
+
+	def weight(self):
+		gcfp = self.parent.gc_frame_plot
+		start = self.start
+		stop = self.stop
+		hold = 1
+		if(self.frame > 0):
+			for base in range(start, stop, 3):
+				ind_min = gcfp.min_frame_at(base)
+				ind_max = gcfp.max_frame_at(base)
+				hold = orf.hold * ((self.pnots**pos_max[ind_max])**pos_min[ind_min])
+		else:
+			for base in range(start, stop, -3):
+				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
+				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
+				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
+		print(hold)
+		exit()
+
+		'''
+		s = 1/hold
+		if(self.start_codon() in self.start_weight):
+			s = s * self.start_weight[self.start_codon()]
+		s = s * Decimal(str(self.weight_rbs))
+		self.weight = -s
+		'''
+
+	def score_rbs(self):
+		return self.parent.score_rbs(self.rbs)
+
+	def dna(self):
+		if self.frame > 0:
+			return          self.parent.seq(self.left(), self.right())
+		else:
+			return rev_comp(self.parent.seq(self.left(), self.right()))
+	
+	def rbs(self):
+		if self.frame > 0:
+			return          self.parent.seq(self.left()-19, self.left()-1)
+		else:
+			return rev_comp(self.parent.seq(self.right()+1, self.right()+19))
 
 	def left(self):
 		if self.frame > 0:
@@ -256,10 +304,10 @@ class Orf:
 		self.weight = -s
 		
 	def start_codon(self):
-		return self.seq[0:3]
+		return self.dna[0:3]
 
 	def stop_codon(self):
-		return self.seq[-3:]
+		return self.dna[-3:]
 
 	def has_start(self):
 		return self.start_codon() in self.start_codons
@@ -268,6 +316,7 @@ class Orf:
 		return self.stop_codon() in self.stop_codons
 
 	def pp_stop(self):
+		""" this one does codon base specific pstop calculation"""
 		frequency = [None]*4
 		frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0}
 		frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0}
@@ -288,13 +337,13 @@ class Orf:
 		Ptag = (frequency[1]['T']/count[1]) * (frequency[2]['A']/count[2]) * (frequency[3]['G']/count[3])
 		return Ptaa+Ptga+Ptag
 
-	def p_stop(self):
+	def pstop(self):
 		frequency = {'A':0, 'T':0, 'C':0, 'G':0}
-		for base in self.seq:
+		for base in self.dna:
 			if(base not in ['A', 'C', 'T', 'G']):
 				continue
 			frequency[base] += 1
-		length = Decimal(len(self.seq))
+		length = Decimal(len(self.dna))
 		Pa = frequency['A']/length
 		Pt = frequency['T']/length
 		Pg = frequency['G']/length
@@ -303,13 +352,13 @@ class Orf:
 
 	def __repr__(self):
 		"""Compute the string representation of the orf"""
-		return "%s(%s,%s,%s,%s,%s)" % (
+		return "%s(%s,%s,%s,%s)" % (
 			self.__class__.__name__,
 			repr(self.start),
 			repr(self.stop),
 			repr(self.frame),
-			repr(self.weight_rbs),
 			repr(self.weight))
+
 	def __eq__(self, other):
 		"""Override the default Equals behavior"""
 		if isinstance(other, self.__class__):

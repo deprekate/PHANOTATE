@@ -50,7 +50,7 @@ class Orfs(dict):
 			for orf in orfs:
 				#if(orf.start_codon() == 'ATG'):
 				if(orf.good):
-					n = int(orf.length()/10)
+					#n = int(orf.length()/10)
 					#for base in range(start+n, stop-36, 3):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
 							pos_min[min_frame] += 1
@@ -61,14 +61,16 @@ class Orfs(dict):
 		pos_min[:] = [x / y for x in pos_min]	
 		y = max(pos_max)
 		pos_max[:] = [x / y for x in pos_max]	
-		print(pos_min)
-		print(pos_max)
-		exit()
-		s = 1/self.hold
-		if(self.start_codon() in self.start_weight):
-			s = s * self.start_weight[self.start_codon()]
-		s = s * Decimal(str(self.weight_rbs))
-		self.weight = -s
+		
+		for orf in self.iter_orfs():
+			orf.weight = 1
+			for min_frame,max_frame in zip(orf.min_frames, orf.max_frames):
+				orf.weight = orf.weight * ((orf.pnots**pos_min[min_frame])**pos_max[max_frame])
+			orf.weight = 1 / orf.weight
+			if(orf.start_codon() in self.start_weight):
+				orf.weight = orf.weight * self.start_weight[orf.start_codon()]
+			orf.weight = orf.weight * Decimal(str(orf.score_rbs()))
+			orf.weight = -orf.weight
 
 	def score_rbs(self, seq):
 		return 1 + self.rbs_scorer.score_init_rbs(seq, 20)[0]

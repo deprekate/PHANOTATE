@@ -322,12 +322,12 @@ def get_graph(my_orfs):
 			target = Node('CDS', 'start', orf.frame, orf.start)
 		G.add_edge(Edge(source, target, orf.weight))
 	#-------------------------------Check for long noncoding regions that would break the path---------#
-	bases = [None] * my_orfs.contig_length
+	bases = [None] * my_orfs.contig_length()
 	for orfs in my_orfs.iter_in():
 		for orf in orfs:
 			mi = min(orf.start, orf.stop)
 			ma = max(orf.start, orf.stop)
-			for n in range(mi, min(ma, my_orfs.contig_length-1)):
+			for n in range(mi, min(ma, my_orfs.contig_length()-1)):
 				try:
 					bases[n] = n
 				except:
@@ -443,7 +443,7 @@ def get_graph(my_orfs):
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
 	source = Node('source', 'source', 0, 0)
-	target = Node('target', 'target', 0, my_orfs.contig_length+1)
+	target = Node('target', 'target', 0, my_orfs.contig_length()+1)
 	G.add_node(source)
 	G.add_node(target)
 	for node in G.iternodes():
@@ -451,9 +451,9 @@ def get_graph(my_orfs):
 			if( (node.type == 'start' and node.frame > 0) or (node.type =='stop' and node.frame < 0) ):
 				score = score_gap(node.position, 'same', pgap)
 				G.add_edge(Edge(source, node, score))
-		if(my_orfs.contig_length - node.position <= 2000):
+		if(my_orfs.contig_length() - node.position <= 2000):
 			if( (node.type == 'start' and node.frame < 0) or (node.type =='stop' and node.frame > 0) ):
-				score = score_gap(my_orfs.contig_length-node.position, 'same', pgap)
+				score = score_gap(my_orfs.contig_length()-node.position, 'same', pgap)
 				G.add_edge(Edge(node, target, score))
 
 	return G
@@ -462,7 +462,7 @@ def get_graph(my_orfs):
 def add_trnas(my_orfs, G):
 	f = tempfile.NamedTemporaryFile(mode='wt')
 	f.write(">temp\n")
-	f.write(my_orfs.seq)
+	f.write(my_orfs.dna)
 	f.seek(0)
 
 	try:

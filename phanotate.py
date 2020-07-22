@@ -39,19 +39,15 @@ for id, seq in my_contigs.items():
 	contig_orfs.parse_contig(seq)
 
 	contig_orfs.score()
-	exit()
-	for orf in contig_orfs.iter_orfs():
-		print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.good, sep='\t')
-
-	exit()
-
-	contig_orfs.score_rbs_sites()
-
-	contig_orfs.calculate_weights(my_orfs)
-
+	
+	'''
+	for orfs in contig_orfs.iter_out():
+		for orf in orfs:
+			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.weight, sep='\t')
+	'''
 
 	#-------------------------------Create the Graph-------------------------------------------#
-	my_graph = functions.get_graph(my_orfs)
+	my_graph = functions.get_graph(contig_orfs)
 
 
 
@@ -71,7 +67,7 @@ for id, seq in my_contigs.items():
 
 	
 	#-------------------------------Write Output ----------------------------------------------#
-	file_handling.write_output(id, args, shortest_path, my_graph, my_orfs)
+	file_handling.write_output(id, args, shortest_path, my_graph, contig_orfs)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

@@ -39,7 +39,7 @@ for id, seq in my_contigs.items():
 	contig_orfs.parse_contig(seq)
 
 	contig_orfs.score()
-
+	exit()
 	for orf in contig_orfs.iter_orfs():
 		print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.good, sep='\t')
 

@@ -46,13 +46,13 @@ class Orfs(dict):
 		pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 
 		self.classify_orfs()
-		return
 		for orfs in self.iter_in():
 			for orf in orfs:
-				if(orf.start_codon() == 'ATG'):
+				#if(orf.start_codon() == 'ATG'):
+				if(orf.good):
 					n = int(orf.length()/10)
 					#for base in range(start+n, stop-36, 3):
-					for min_frame,max_frame in zip(orf.min_frames[13:-13], orf.max_frames[13:-13]):
+					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
 							pos_min[min_frame] += 1
 							pos_max[max_frame] += 1
 					break
@@ -151,15 +151,8 @@ class Orfs(dict):
 			for aa in list('ARNDCEQGHILKMFPSTWYV'):
 				point.append(orf.amino_acid_frequency(aa))
 			X.append(point)
-		km = KM(n_clusters=3).fit(X)
-		print(km.withinss_)
 			
-		X = StandardScaler().fit_transform(X)
-		X = np.array(X)
-		kmeans = KMeans(n_clusters=3).fit(X)
-		v = [np.var(X[kmeans.labels_==i]) for i in range(3)]
-		print(v)
-		exit()
+		kmeans = KM(n_clusters=3).fit(X)
 		val, idx = min((val, idx) for (idx, val) in enumerate(kmeans.withinss_))
 
 		for i, orf in enumerate(self.iter_orfs()):
@@ -167,7 +160,6 @@ class Orfs(dict):
 				orf.good = 1
 			else:
 				orf.good = 0
-		#print kmeans.cluster_centers_
 
 	def parse_contig(self, dna):
 		self.dna = dna

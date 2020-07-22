@@ -3,7 +3,7 @@ import itertools
 from math import log10
 from decimal import Decimal
 
-from .kmeans import KMeans
+#from .kmeans import KMeans
 from .gc_frame_plot import GCFramePlot
 from score_rbs import ScoreXlationInit
 
@@ -17,10 +17,10 @@ def rev_comp(seq):
 
 def pstop(seq):
 	length = Decimal(len(seq))
-	Pa = seq.count('A') / (length)
-	Pt = seq.count('T') / (length)
-	Pg = seq.count('G') / (length)
-	Pc = seq.count('C') / (length)
+	Pa = seq.count('A') / length
+	Pt = seq.count('T') / length
+	Pg = seq.count('G') / length
+	Pc = seq.count('C') / length
 	return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 	
 
@@ -41,6 +41,35 @@ class Orfs(dict):
 		self.gc_frame_plot = None
 		self.rbs_scorer = ScoreXlationInit()
 
+	def score(self):
+		pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
+		pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
+
+		self.classify_orfs()
+		return
+		for orfs in self.iter_in():
+			for orf in orfs:
+				if(orf.start_codon() == 'ATG'):
+					n = int(orf.length()/10)
+					#for base in range(start+n, stop-36, 3):
+					for min_frame,max_frame in zip(orf.min_frames[13:-13], orf.max_frames[13:-13]):
+							pos_min[min_frame] += 1
+							pos_max[max_frame] += 1
+					break
+		# normalize to one
+		y = max(pos_min)
+		pos_min[:] = [x / y for x in pos_min]	
+		y = max(pos_max)
+		pos_max[:] = [x / y for x in pos_max]	
+		print(pos_min)
+		print(pos_max)
+		exit()
+		s = 1/self.hold
+		if(self.start_codon() in self.start_weight):
+			s = s * self.start_weight[self.start_codon()]
+		s = s * Decimal(str(self.weight_rbs))
+		self.weight = -s
+
 	def score_rbs(self, seq):
 		return 1 + self.rbs_scorer.score_init_rbs(seq, 20)[0]
 
@@ -50,7 +79,7 @@ class Orfs(dict):
 	def add_orf(self, start, stop, frame, seq, rbs):
 		""" Adds an orf to the factory"""
 		if len(seq) < self.min_orf_len: return
-
+		
 		o = Orf(start, stop, frame, self)
 
 		if stop not in self:
@@ -112,19 +141,32 @@ class Orfs(dict):
 		return self.contig_length() - ((self.contig_length() - (frame-1))%3)
 	
 	def classify_orfs(self):
+		import numpy as np
+		from sklearn.preprocessing import StandardScaler
+		from sklearn.cluster import KMeans
+		from .kmeans import KMeans as KM
 		X = []
 		for orf in self.iter_orfs():
 			point = []
 			for aa in list('ARNDCEQGHILKMFPSTWYV'):
-				point.append(orf.med[aa])
+				point.append(orf.amino_acid_frequency(aa))
 			X.append(point)
-
-		kmeans = KMeans(n_clusters=2).fit(X)
+		km = KM(n_clusters=3).fit(X)
+		print(km.withinss_)
+			
+		X = StandardScaler().fit_transform(X)
+		X = np.array(X)
+		kmeans = KMeans(n_clusters=3).fit(X)
+		v = [np.var(X[kmeans.labels_==i]) for i in range(3)]
+		print(v)
+		exit()
 		val, idx = min((val, idx) for (idx, val) in enumerate(kmeans.withinss_))
 
 		for i, orf in enumerate(self.iter_orfs()):
 			if kmeans.labels_[i] == idx:
 				orf.good = 1
+			else:
+				orf.good = 0
 		#print kmeans.cluster_centers_
 
 	def parse_contig(self, dna):
@@ -204,45 +246,45 @@ class Orf:
 		self.stop = stop
 		self.frame = frame
 		self.parent = parent
-		self.weight = self.weight()
 		self.dna = self.dna()
+		self.amino_acids = self.amino_acids()
 		self.rbs = self.rbs()
 		self.pstop = pstop(self.dna)
 		self.pnots = 1 - self.pstop
+		self.min_frames, self.max_frames = self.gc_frame_plot()
+		#self.weight = self.weight()
+
 		'''
 		self.scores = dict()
 		self.aa = dict()
 		self.med = dict()
 		self.good = 0
-
-		self.parse_seq()
 		'''
+		#self.parse_seq()
 
-	def weight(self):
+	def gc_frame_plot(self):
 		gcfp = self.parent.gc_frame_plot
-		start = self.start
-		stop = self.stop
-		hold = 1
+		rev = lambda x : 0 if not x else 3 - x + 1
+		min_frames = []
+		max_frames = []
 		if(self.frame > 0):
-			for base in range(start, stop, 3):
-				ind_min = gcfp.min_frame_at(base)
-				ind_max = gcfp.max_frame_at(base)
-				hold = orf.hold * ((self.pnots**pos_max[ind_max])**pos_min[ind_min])
+			for base in range(self.start, self.stop+1, 3):
+				min_frames.append(gcfp.min_frame_at(base))
+				max_frames.append(gcfp.max_frame_at(base))
 		else:
-			for base in range(start, stop, -3):
-				ind_max = max_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
-				ind_min = min_idx(gc_pos_freq[base][2],gc_pos_freq[base][1],gc_pos_freq[base][0])
-				orf.hold = orf.hold * (((1-orf.pstop)**pos_max[ind_max])**pos_min[ind_min])
-		print(hold)
-		exit()
+			for base in range(self.start, self.stop-1, -3):
+				min_frames.append(rev(gcfp.min_frame_at(base)))
+				max_frames.append(rev(gcfp.max_frame_at(base)))
+		return min_frames, max_frames	
+		
+	def weight():
+		hold = hold * ((self.pnots**pos_max[ind_max])**pos_min[ind_min])
 
-		'''
 		s = 1/hold
 		if(self.start_codon() in self.start_weight):
 			s = s * self.start_weight[self.start_codon()]
 		s = s * Decimal(str(self.weight_rbs))
-		self.weight = -s
-		'''
+		return -s
 
 	def score_rbs(self):
 		return self.parent.score_rbs(self.rbs)
@@ -252,7 +294,10 @@ class Orf:
 			return          self.parent.seq(self.left(), self.right())
 		else:
 			return rev_comp(self.parent.seq(self.left(), self.right()))
-	
+
+	def length(self):
+		return len(self.dna)
+
 	def rbs(self):
 		if self.frame > 0:
 			return          self.parent.seq(self.left()-19, self.left()-1)
@@ -271,15 +316,36 @@ class Orf:
 		else:
 			return self.start + 2
 
-	def parse_seq(self):
+	def amino_acids(self):
 		#calculate the amino acid frequency
 		nucs = ['T', 'C', 'A', 'G']
 		codons = [a+b+c for a in nucs for b in nucs for c in nucs]
 		amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
 		codon_table = dict(zip(codons, amino_acids))
+		aa = []
+		for i in range(0, self.length(), 3):
+			aa.append(codon_table[self.dna[i:i+3]])
+		return "".join(aa)
+
+	def amino_acid_count(self, aa):
+		return self.amino_acids.count(aa) 
+			
+	def amino_acid_frequency(self, aa):
+		return self.amino_acid_count(aa) / (len(self.amino_acids) - self.amino_acids.count('*'))
+
+	def something(self):
+		frequencies = dict()
+		for aa in self.amino_acids:
+			frequencies[aa] = frequencies.get(aa, 0) + 1
+		return frequencies
+		
+
+	def parse_seq(self):
+		amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+		self.aa = dict()
 		for a in amino_acids:
 			self.aa[a] = 0
-		for i in range(0, len(self.seq)-5, 3):
+		for i in range(0, self.length(), 3):
 			self.aa[codon_table[self.seq[i:i+3]]] += 1
 			self.aa['*'] += 1
 		#calculate the MED scores

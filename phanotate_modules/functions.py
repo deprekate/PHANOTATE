@@ -29,6 +29,8 @@ def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
 	s = Decimal('0.05')
 
+	if length <=4:
+		return 0
 	score = Decimal(o)**Decimal(length)
 	score = 1/score
 	if(direction == 'diff'):

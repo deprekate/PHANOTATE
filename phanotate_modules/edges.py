@@ -19,7 +19,7 @@ class Edge:
         return "%s\t%s\t%s" % (
                 repr(self.source),
                 repr(self.target),
-				str(self.weight*1000)
+		str(self.weight*1000)
                 )
 
     def __repr__(self):

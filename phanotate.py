@@ -32,20 +32,19 @@ if not my_contigs:
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
 for id, seq in my_contigs.items():
-	print("#id:", id[1:], sep='\t')
 	contig_orfs = Orfs(**vars(args))
 	#-------------------------------Find the ORFs----------------------------------------------#
 
 	contig_orfs.parse_contig(seq)
 
 	contig_orfs.score()
-	
+
 	'''
 	for orfs in contig_orfs.iter_out():
 		for orf in orfs:
 			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.weight, sep='\t')
+	exit()
 	'''
-
 	#-------------------------------Create the Graph-------------------------------------------#
 	my_graph = functions.get_graph(contig_orfs)
 

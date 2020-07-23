@@ -136,7 +136,7 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			outfile.write('                     /note="weight=' + '{:.2E}'.format(weight) + ';"\n')
 		outfile.write('ORIGIN')
 		i = 0
-		dna = textwrap.wrap(my_orfs.seq, 10)
+		dna = textwrap.wrap(my_orfs.dna, 10)
 		for block in dna:
 			if(i%60 == 0):
 				outfile.write('\n')

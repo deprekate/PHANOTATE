@@ -31,7 +31,7 @@ class Orfs(dict):
 		self.n = n
 		self.dna = None
 		self.pstop = None
-		self.min_orf_len = 90
+		self.min_orf_len = 87
 		self.other_end = dict()
 		self.start_codons = ['ATG', 'GTG', 'TTG']
 		self.stop_codons = ['TAA', 'TGA', 'TAG']
@@ -370,7 +370,7 @@ class Orf:
 		return self.dna[-3:]
 
 	def has_start(self):
-		return self.start_codon() in self.start_codons
+		return self.start_codon() in self.parent.start_codons
 		
 	def has_stop(self):
 		return self.stop_codon() in self.stop_codons

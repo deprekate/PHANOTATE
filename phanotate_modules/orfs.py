@@ -239,6 +239,7 @@ class Orf:
 		self.start = start
 		self.stop = stop
 		self.frame = frame
+		self.weight = None
 		self.parent = parent
 		self.dna = self.dna()
 		self.amino_acids = self.amino_acids()

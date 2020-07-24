@@ -29,11 +29,12 @@ def score_overlap(length, direction, pstop):
 	o = Decimal(1-pstop)
 	s = Decimal('0.05')
 
-	if length <=4:
+	if length <= 4:
 		return 0
+
 	score = Decimal(o)**Decimal(length)
 	score = 1/score
-	if(direction == 'diff'):
+	if not direction:
 		score = score + (1/s)
 	return score
 
@@ -45,7 +46,7 @@ def score_gap(length, direction, pgap):
 			return Decimal(g)**Decimal(100) + length
 	score = Decimal(g)**Decimal(length/3)
 	score = 1/score
-	if(direction == 'diff'):
+	if not direction:
 		score = score + (1/s)
 	return score
 
@@ -346,17 +347,17 @@ def get_graph(my_orfs):
 						if(last+1 >= l > last-300 and base-1 <= r < base+300):
 							if(left_node.frame*right_node.frame > 0):
 								if(left_node.type == 'stop' and right_node.type =='start' and left_node.frame > 0):
-									score = score_gap(r-l-3, 'same', pgap)
+									score = score_gap(r-l-3, 1, pgap)
 									G.add_edge(Edge(left_node, right_node, score))	
 								elif(left_node.type == 'start' and right_node.type =='stop' and left_node.frame < 0):
-									score = score_gap(r-l-3, 'same', pgap)
+									score = score_gap(r-l-3, 1, pgap)
 									G.add_edge(Edge(left_node, right_node, score ))	
 							else:
 								if(left_node.type == 'stop' and right_node.type =='stop' and left_node.frame > 0):
-									score = score_gap(r-l-3, 'diff', pgap)
+									score = score_gap(r-l-3, 0, pgap)
 									G.add_edge(Edge(left_node, right_node, score ))	
 								elif(left_node.type == 'start' and right_node.type =='start' and left_node.frame < 0):
-									score = score_gap(r-l-3, 'diff',pgap)
+									score = score_gap(r-l-3, 0,pgap)
 									G.add_edge(Edge(left_node, right_node, score ))	
 			last = base
 	#-------------------------------Add in tRNA data---------------------------------------------------#
@@ -389,59 +390,60 @@ def get_graph(my_orfs):
 					o2 = my_orfs.get_orf(r, my_orfs.other_end[r]).pstop
 				else:
 					o2 = pgap
-				pstop = ave([o1, o2])
-
+				pstop = pgap #ave([o1, o2])
+				print(l, r)
 				#trna
 				if(left_node.gene == 'tRNA' or right_node.gene == 'tRNA'):
 					if(left_node.frame*right_node.frame > 0 and left_node.type != right_node.type):
 						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
 							if not G.has_edge(Edge(left_node, right_node, 1)):
-								score = score_gap(r-l-3, 'same', pgap)
+								score = score_gap(r-l-3, 1, pgap)
 								G.add_edge(Edge(left_node, right_node, score ))	
 
 					elif(left_node.frame*right_node.frame < 0 and left_node.type == right_node.type):
 						if(left_node.frame > 0 and left_node.type == 'stop') or (left_node.frame < 0 and left_node.type == 'start'):
 							if not G.has_edge(Edge(left_node, right_node, 1)):
-								score = score_gap(r-l-3, 'same', pgap)
+								score = score_gap(r-l-3, 1, pgap)
 								G.add_edge(Edge(left_node, right_node, score ))	
 				# same directions
 				elif(left_node.frame*right_node.frame > 0):
 					if(left_node.type == 'stop' and right_node.type =='start'):
 						if(left_node.frame > 0):
-							score = score_gap(r-l-3, 'same', pgap)
+							score = score_gap(r-l-3, 1, pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						else:
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l+3, 'same', pstop)
+									score = score_overlap(r-l+3, 1, pstop)
+									print(r-l+3,pstop, score)
 									G.add_edge(Edge(right_node, left_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='stop'):
 						if(left_node.frame > 0):
 							if(left_node.frame != right_node.frame):
 								if(r < l_other and r_other < l):
-									score = score_overlap(r-l+3, 'same', pstop)
+									score = score_overlap(r-l+3, 1, pstop)
 									G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l-3, 'same', pgap)
+							score = score_gap(r-l-3, 1, pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 				# different directions
 				else:
 					if(left_node.type == 'stop' and right_node.type =='stop'):
 						if(right_node.frame > 0):
 							if(r_other+3 < l and r < l_other):
-								score = score_overlap(r-l+3, 'diff', pstop)
+								score = score_overlap(r-l+3, 0, pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 						else:
-							score = score_gap(r-l-3, 'diff', pgap)
+							score = score_gap(r-l-3, 0, pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 					if(left_node.type == 'start' and right_node.type =='start'):
 						if(right_node.frame > 0 and r-l > 2):
-							score = score_gap(r-l-3, 'diff', pgap)
+							score = score_gap(r-l-3, 0, pgap)
 							G.add_edge(Edge(left_node, right_node, score ))	
 						elif(right_node.frame < 0):
 							#print(r_other, l, r, l_other)
 							if(r_other < l and r < l_other):
-								score = score_overlap(r-l+3, 'diff', pstop)
+								score = score_overlap(r-l+3, 0, pstop)
 								G.add_edge(Edge(right_node, left_node, score ))	
 	#-------------------------------Connect open reading frames at both ends to a start and stop-------#
 	source = Node('source', 'source', 0, 0)
@@ -451,11 +453,11 @@ def get_graph(my_orfs):
 	for node in G.iternodes():
 		if(node.position <= 2000):
 			if( (node.type == 'start' and node.frame > 0) or (node.type =='stop' and node.frame < 0) ):
-				score = score_gap(node.position, 'same', pgap)
+				score = score_gap(node.position, 1, pgap)
 				G.add_edge(Edge(source, node, score))
 		if(my_orfs.contig_length() - node.position <= 2000):
 			if( (node.type == 'start' and node.frame < 0) or (node.type =='stop' and node.frame > 0) ):
-				score = score_gap(my_orfs.contig_length()-node.position, 'same', pgap)
+				score = score_gap(my_orfs.contig_length()-node.position, 1, pgap)
 				G.add_edge(Edge(node, target, score))
 
 	return G

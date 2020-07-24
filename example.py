@@ -5,20 +5,20 @@ from phanotate_modules import functions
 import phanotate_connect as pc
 
 class Orf:
-    def __init__(self, left, right, pstop):
-        self.left = left
-        self.right = right
-        self.pstop = pstop
+	def __init__(self, left, right, direction, pstop):
+		self.left = left
+		self.right = right
+		self.direction = direction
+		self.pstop = pstop
 
 
-f = open("orfs.txt", "r")
+f = open("orfs", "r")
 
 # write edges to the graph
 for line in f:
 	orf = eval(line)
-	ret = pc.add_edge(orf.left, orf.right, orf.pstop)
+	ret = pc.add_edge(orf.left, orf.right, orf.direction, orf.pstop)
 
 # find the best path from a source node to a target node
-for edge in pc.get_connected():
-	if edge[0] < edge[1]:
-		print(edge[0], edge[1], functions.score_gap(
+for edge in pc.get_connections():
+	print(edge)

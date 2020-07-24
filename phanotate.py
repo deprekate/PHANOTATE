@@ -37,6 +37,10 @@ for id, seq in my_contigs.items():
 
 	contig_orfs.parse_contig(seq)
 
+	'''
+	for orf in contig_orfs.iter_orfs():
+		print(orf.left(), orf.right()-2, orf.frame, 1-contig_orfs.pstop)
+	'''
 	contig_orfs.score()
 
 	'''
@@ -49,6 +53,7 @@ for id, seq in my_contigs.items():
 	my_graph = functions.get_graph(contig_orfs)
 
 
+	exit()
 
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"

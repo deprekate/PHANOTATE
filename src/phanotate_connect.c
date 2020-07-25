@@ -105,69 +105,54 @@ void remove_newline(char *line){
 }
 
 struct my_struct {
-	//char key[255];		            /* key */
-	int key;
-	int value;
+	char key[255];		            /* key */
+	char value[255];
+	int location;
 	int direction;
 	double pstop;
-	//mpz_t weight;
 	UT_hash_handle hh;		            /* makes this structure hashable */
 };
 
 struct my_struct *nodes_left = NULL;	/* important! initialize to NULL */
 struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
 
-void add_leftnode(int key, int value, int direction, double pstop) {
+void add_leftnode(char *key, char *value, int direction, double pstop) {
 	struct my_struct *s;
 
-	HASH_FIND_INT(nodes_left, &key, s);  /* id already in the hash? */
+	HASH_FIND_STR(nodes_left, key, s);  /* id already in the hash? */
 	if(s==NULL){
 		s = malloc(sizeof(struct my_struct));
-		s->key = key;
-		s->value = value;
+		strcpy(s->key, key);
+		strcpy(s->value, value);
 		s->direction = direction;
+		s->location = atoi(key);
 		s->pstop = pstop;
-		//mpz_init(s->weight);
-		//mpz_set(s->weight, weight);
-
-		HASH_ADD_INT( nodes_left, key, s );  /* id: name of key field */
+		HASH_ADD_STR( nodes_left, key, s );  /* id: name of key field */
 	}
 }
 
-void add_rightnode(int key, int value, int direction, double pstop) {
+void add_rightnode(char *key, char *value, int direction, double pstop) {
 	struct my_struct *s;
 
-	HASH_FIND_INT(nodes_right, &key, s);  /* id already in the hash? */
+	HASH_FIND_STR(nodes_right, key, s);  /* id already in the hash? */
 	if(s==NULL){
 		s = malloc(sizeof(struct my_struct));
-		s->key = key;
-		s->value = value;
+		strcpy(s->key, key);
+		strcpy(s->value, value);
 		s->direction = direction;
+		s->location = atoi(key);
 		s->pstop = pstop;
-		//mpz_init(s->weight);
-		//mpz_set(s->weight, weight);
-
-		HASH_ADD_INT( nodes_right, key, s );  /* id: name of key field */
+		HASH_ADD_STR( nodes_right, key, s );  /* id: name of key field */
 	}
 }
 
-static PyObject* add_edge (PyObject* self, PyObject* args, int left_position, int right_position, int direction, double pstop){
-	//mpz_t weight;
+static PyObject* add_edge (PyObject* self, PyObject* args, char *left_position, char *right_position, int direction, double pstop){
 
 	//char *edge_string;
-	if(!PyArg_ParseTuple(args, "iiid", &left_position, &right_position, &direction, &pstop)) {
+	if(!PyArg_ParseTuple(args, "ssid", &left_position, &right_position, &direction, &pstop)) {
 		return NULL;
 	}
 	
-	// weight
-	//mpz_init(weight);
-	//if(strstr(weight_string, "E") != NULL) {
-	//	mpz_set_str(weight, expand_scinote(weight_string), 10);
-	//}else{
-	//	mpz_set_str(weight, remove_decimals(weight_string), 10);
-	//}
-	//mpz_clear(weight);
-
 	// source
 	add_leftnode(left_position, right_position, direction, pstop);
 	// destination
@@ -191,12 +176,10 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	for(s1=nodes_right; s1 != NULL; s1=s1->hh.next) {
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			// this step is O(n2) so things have to be efficient
-			distance = s1->key - s2->key;
+			distance = s1->location - s2->location;
 			distance = (distance >= 0) ? distance : -distance;
 			if(distance <= 300 && s1->key != s2->value && s1->value != s2->key){
-				PyList_Append(new_edges, Py_BuildValue("iid", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance) ));
-				printf("%f %f %i\n", s1->pstop, s2->pstop, distance);
-				exit(0);
+				PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance) ));
 				//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
 			}
 	}

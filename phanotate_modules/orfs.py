@@ -257,6 +257,13 @@ class Orf:
 		'''
 		#self.parse_seq()
 
+	def as_edge(self):
+		return "o%s\to%s\t%s" % (
+			self.left(),
+			self.right()-2,
+			self.weight
+			)
+
 	def gc_frame_plot(self):
 		gcfp = self.parent.gc_frame_plot
 		rev = lambda x : 0 if not x else 3 - x + 1

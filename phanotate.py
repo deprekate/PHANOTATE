@@ -5,6 +5,7 @@ import getopt
 
 #from subprocess import Popen, PIPE, STDOUT
 import fastpathz as fz
+import phanotate_connect as pc
 
 from phanotate_modules import file_handling
 from phanotate_modules import functions
@@ -37,10 +38,6 @@ for id, seq in my_contigs.items():
 
 	contig_orfs.parse_contig(seq)
 
-	'''
-	for orf in contig_orfs.iter_orfs():
-		print(orf.left(), orf.right()-2, orf.frame, 1-contig_orfs.pstop)
-	'''
 	contig_orfs.score()
 
 	'''
@@ -50,8 +47,20 @@ for id, seq in my_contigs.items():
 	exit()
 	'''
 	#-------------------------------Create the Graph-------------------------------------------#
-	my_graph = functions.get_graph(contig_orfs)
+#	my_graph = functions.get_graph(contig_orfs)
+	
+	fz.empty_graph()
+	for orf in contig_orfs.iter_orfs():
+		# write edges to the graph
+		ret = fz.add_edge( orf.as_edge() )
+		# write edges to pconnect to get interconnections
+		ret = pc.add_edge(orf.left(), orf.right()-2, orf.frame, orf.pstop)
 
+	
+	for con in pc.get_connections():
+		edge = 
+		#ret = fz.add_edge( orf.as_edge() )
+		print(edge)
 
 	exit()
 

@@ -50,7 +50,7 @@ def read_fasta(filepath, base_trans=str.maketrans('','')):
 		for line in f:
 			if line.startswith(">"):
 				contigs_dict[name] = seq
-				name = line.split()[0]
+				name = line[1:].split()[0]
 				seq = ''
 			else:
 				#seq += line.replace("\n", "").upper()
@@ -60,14 +60,28 @@ def read_fasta(filepath, base_trans=str.maketrans('','')):
 	if '' in contigs_dict: del contigs_dict['']
 	return contigs_dict
 
-def write_output(id, args, my_path, my_graph, my_orfs):
+def write_output(contig_orfs, shortest_path):
+	if contig_orfs.outfmt == 'tabular':
+		write_tabular(contig_orfs, shortest_path)
+
+
+def write_tabular(contig_orfs, shortest_path):
+	outfile = contig_orfs.outfile
+
+	outfile.write("#id:\t" + contig_orfs.id + "\n")
+	outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
+	for left, right in pairwise(shortest_path):
+		feature = contig_orfs.get_feature(left, right)
+		if(feature.type == 'tRNA'):
+			continue
+		'''
+		'''
+		outfile.write('\t'.join(map(str, [feature.begin(), feature.end(), feature.direction(), contig_orfs.id, feature.weight, '\n'] )))
+
+def write_out(contig_orfs, shortest_path):
 	outfmt = args.outfmt
 	outfile = args.outfile
 	
-	try:
-		my_path = my_path[1:]
-	except:
-		sys.stdout.write("Error running fastpathz: " + output + '\n')
 	if(not my_path):
 		outfile.write("#id:\t" + str(id[1:]) + " NO ORFS FOUND\n")
 	elif(outfmt == 'tabular'):

@@ -177,10 +177,20 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			// this step is O(n2) so things have to be efficient
 			distance = s1->location - s2->location;
-			distance = (distance >= 0) ? distance : -distance;
-			if(distance <= 300 && s1->key != s2->value && s1->value != s2->key){
-				PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance) ));
-				//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
+			//distance = (distance >= 0) ? distance : -distance;
+			if(-300 < distance && distance < 300){
+				if(s1->key != s2->value && s1->value != s2->key){
+					if(distance > 0){
+						// overlap
+						if(atoi(s1->value) < atoi(s2->key))
+							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance/3) ));
+					}else{
+						//gap
+						if(atoi(s1->value) < atoi(s2->key))
+							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance/3) ));
+							//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
+					}
+				}
 			}
 	}
 	}
@@ -197,7 +207,7 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 // We require this `NULL` to signal the end of our method
 static PyMethodDef phanotate_connect_methods[] = {
 	{ "get_connections", (PyCFunction) get_connections, METH_VARARGS | METH_KEYWORDS, "Returns the edges of connections orfs" },
-	{ "add_edge", (PyCFunction) add_edge, METH_VARARGS | METH_KEYWORDS, "Adds an edge to the graph" },
+	{ "add_edge",        (PyCFunction) add_edge,        METH_VARARGS | METH_KEYWORDS, "Adds an edge to the graph" },
 	{ NULL, NULL, 0, NULL }
 };
 //#ifdef PY3K

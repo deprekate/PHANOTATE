@@ -28,6 +28,7 @@ class Orfs(dict):
 	"""The class holding the orfs"""
 	def __init__(self, n=0, **kwargs):
 		self.__dict__.update(kwargs)
+
 		self.n = n
 		self.dna = None
 		self.pstop = None
@@ -48,8 +49,8 @@ class Orfs(dict):
 		self.classify_orfs()
 		for orfs in self.iter_in():
 			for orf in orfs:
-				#if(orf.start_codon() == 'ATG'):
-				if(orf.good):
+				if(orf.start_codon() == 'ATG'):
+				#if(orf.good):
 					#n = int(orf.length()/10)
 					#for base in range(start+n, stop-36, 3):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
@@ -127,14 +128,25 @@ class Orfs(dict):
 				return list[0]
 			else:
 				return list[-1]
-	def get_orf(self, start, stop):
-		if stop in self:
-			if start in self[stop]:
-				return self[stop][start]
+	def get_orf(self, left, right):
+		if right in self:
+			if left in self[right]:
+				return self[right][left]
+			else:
+				raise ValueError("orf with start codon not found")
+		elif left in self:
+			if right in self[left]:
+				return self[left][right]
 			else:
 				raise ValueError("orf with start codon not found")
 		else:
 			raise ValueError(" orf with stop codon not found")
+	def get_feature(self, left, right):
+		feature_type = left[-1]
+		left = int(left[:-1])
+		right = int(right[:-1])
+		if feature_type == 'o':
+			return self.get_orf(left, right)
 
 	def contig_length(self):
 		return len(self.dna)
@@ -163,9 +175,11 @@ class Orfs(dict):
 			else:
 				orf.good = 0
 
-	def parse_contig(self, dna):
+	def parse_contig(self, id, dna):
+		self.id = id
 		self.dna = dna
 		self.pstop = pstop(self.dna + rev_comp(self.dna))
+		self.pnots = 1 - self.pstop
 
 		self.gc_frame_plot = GCFramePlot(dna)
 	
@@ -236,6 +250,7 @@ class Orfs(dict):
 	
 class Orf:
 	def __init__(self, start, stop, frame, parent): #, frame, seq=None, rbs=None, start_codons=None, stop_codons=None):
+		self.type = 'orf'
 		self.start = start
 		self.stop = stop
 		self.frame = frame
@@ -250,7 +265,7 @@ class Orf:
 		#self.weight = self.weight()
 
 		'''
-		self.scores = dict()
+		self.scores = dict()22686	23918
 		self.aa = dict()
 		self.med = dict()
 		self.good = 0
@@ -258,7 +273,7 @@ class Orf:
 		#self.parse_seq()
 
 	def as_edge(self):
-		return "o%s\to%s\t%s" % (
+		return "%so\t%so\t%s" % (
 			self.left(),
 			self.right()-2,
 			self.weight
@@ -306,6 +321,40 @@ class Orf:
 		else:
 			return rev_comp(self.parent.seq(self.right()+1, self.right()+19))
 
+	def direction(self):
+		if self.frame > 0:
+			return '+'
+		else:
+			return '-'
+
+	def temp(self):
+		pass
+		'''
+		if(feature.left() == 0 and right == last_node):
+			left = abs(left.frame)
+			right = '>' + str(left+3*int((right-left)/3)-1)
+			left = '<' + str(left)
+		elif(left == 0):
+			left = '<' + str(((right+2)%3)+1)
+			right += 2
+		elif(right == last_node):
+			right = '>' + str(left+3*int((right-left)/3)-1)
+		'''
+
+	def begin(self):
+		c = '' if self.start_codon() in self.parent.start_codons else '<'
+		if self.frame > 0:
+			return c + str(self.start)
+		else:
+			return c + str(self.start+2)
+
+	def end(self):
+		c = '' if self.stop_codon() in self.parent.stop_codons else '>'
+		if self.frame > 0:
+			return c + str(self.stop+2)
+		else:
+			return c + str(self.stop)
+
 	def left(self):
 		if self.frame > 0:
 			return self.start
@@ -317,6 +366,12 @@ class Orf:
 			return self.stop + 2
 		else:
 			return self.start + 2
+
+	def left_node(self):
+		return str(self.left()) + 'o'
+
+	def right_node(self):
+		return str(self.right()-2) + 'o'
 
 	def amino_acids(self):
 		#calculate the amino acid frequency

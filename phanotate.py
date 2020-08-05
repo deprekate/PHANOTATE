@@ -48,16 +48,24 @@ for id, dna in contigs.items():
 	'''
 	#-------------------------------Create the Graph-------------------------------------------#
 #	my_graph = functions.get_graph(contig_orfs)
-	
-	fz.empty_graph()
-	for orf in contig_orfs.iter_orfs():
-		# write edges to the graph
-		ret = fz.add_edge( orf.as_edge() )
-		# write edges to pconnect to get interconnections
-		ret = pc.add_edge(orf.left_node(), orf.right_node(), orf.frame, orf.pnots)
+	#scale = lambda a : (a[0], a[1], str(Decimal(a[2])*1000))
 
+	fz.empty_graph()
+
+	# write edges to the graph
+	for orf in contig_orfs.iter_orfs():
+		ret = fz.add_edge( orf.as_scaled_edge() )
+
+	# write edges to pconnect to get interconnections
+	for edge in fz.get_edges():
+		print(edge)
+		ret = pc.add_edge(edge, contig_orfs.pnots)
+
+	print("--------")
 	for edge in pc.get_connections():
-		ret = fz.add_edge( "\t".join(map(str,edge)) )
+		print(edge)
+		#ret = fz.add_edge( "\t".join(map(str,edge)) )
+	exit()
 	
 	for orf in contig_orfs.iter_orfs():
 		if(orf.left() <= 2000):
@@ -68,7 +76,10 @@ for id, dna in contigs.items():
 			edge = "\t".join(map(str, [orf.right_node(), 'target', 1/(contig_orfs.pnots**l)] ))
 			ret = fz.add_edge( edge )
 
-
+	if args.dump:
+		for edge in fz.get_edges():
+			print(edge)
+		sys.exit()
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 
 	shortest_path = fz.get_path(source='source', target='target')[1:-1]

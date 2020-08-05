@@ -17,6 +17,9 @@ from .gc_frame_plot import max_idx
 from .gc_frame_plot import min_idx
 #from sklearn.cluster import KMeans
 
+def scale(edge):
+	#return "%so\t%so\t%s" % (
+	return (edge[0], edge[1], self.weight*1000)
 
 def rev_comp(seq):
 	seq_dict = {'A':'T','T':'A','G':'C','C':'G',

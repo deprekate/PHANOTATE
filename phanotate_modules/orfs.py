@@ -22,7 +22,7 @@ def pstop(seq):
 	Pg = seq.count('G') / length
 	Pc = seq.count('C') / length
 	return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
-	
+
 
 class Orfs(dict):
 	"""The class holding the orfs"""
@@ -272,12 +272,11 @@ class Orf:
 		'''
 		#self.parse_seq()
 
-	def as_edge(self):
-		return "%so\t%so\t%s" % (
-			self.left(),
-			self.right()-2,
-			self.weight
-			)
+	def as_scaled_edge(self):
+		if self.frame > 0:
+			return ("%sstart" % self.left(), "%sstop" % (self.right()-2), "%s" % (self.weight*1000))
+		else:
+			return ("%sstop" % self.left(), "%sstart" % (self.right()-2), "%s" % (self.weight*1000))
 
 	def gc_frame_plot(self):
 		gcfp = self.parent.gc_frame_plot

@@ -55,6 +55,22 @@ const char * remove_decimals(const char *str){
 	return output;
 }
 
+const char * remove_digits(const char *str){
+	char* output = malloc(sizeof(char) * LEN(str) );
+	int c, i, len;
+
+	len = 0;
+	for (i = 0; i < LEN(str); i++){
+		c = (unsigned char) str[i];
+		if(c < '0' || c > '9'){
+			output[len] = c;
+			len++;
+		}
+    }
+	output[len] = '\0';
+    return output;
+}
+
 const char * expand_scinote(const char *str){
 	char *output, *ptr;
 	size_t int_size, exp_size, size;
@@ -104,11 +120,12 @@ void remove_newline(char *line){
 		line[new_line] = '\0';
 }
 
+
 struct my_struct {
 	char key[255];		            /* key */
 	char value[255];
 	int location;
-	int direction;
+	char type[255];
 	double pstop;
 	UT_hash_handle hh;		            /* makes this structure hashable */
 };
@@ -116,7 +133,7 @@ struct my_struct {
 struct my_struct *nodes_left = NULL;	/* important! initialize to NULL */
 struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
 
-void add_leftnode(char *key, char *value, int direction, double pstop) {
+void add_leftnode(char *key, char *value, double pstop) {
 	struct my_struct *s;
 
 	HASH_FIND_STR(nodes_left, key, s);  /* id already in the hash? */
@@ -124,14 +141,14 @@ void add_leftnode(char *key, char *value, int direction, double pstop) {
 		s = malloc(sizeof(struct my_struct));
 		strcpy(s->key, key);
 		strcpy(s->value, value);
-		s->direction = direction;
-		s->location = atoi(key);
 		s->pstop = pstop;
+		s->location = atoi(key);
+		strcpy(s->type, remove_digits(key));
 		HASH_ADD_STR( nodes_left, key, s );  /* id: name of key field */
 	}
 }
 
-void add_rightnode(char *key, char *value, int direction, double pstop) {
+void add_rightnode(char *key, char *value, double pstop) {
 	struct my_struct *s;
 
 	HASH_FIND_STR(nodes_right, key, s);  /* id already in the hash? */
@@ -139,24 +156,28 @@ void add_rightnode(char *key, char *value, int direction, double pstop) {
 		s = malloc(sizeof(struct my_struct));
 		strcpy(s->key, key);
 		strcpy(s->value, value);
-		s->direction = direction;
-		s->location = atoi(key);
 		s->pstop = pstop;
+		s->location = atoi(key);
+		strcpy(s->type, remove_digits(key));
 		HASH_ADD_STR( nodes_right, key, s );  /* id: name of key field */
 	}
 }
 
-static PyObject* add_edge (PyObject* self, PyObject* args, char *left_position, char *right_position, int direction, double pstop){
-
-	//char *edge_string;
-	if(!PyArg_ParseTuple(args, "ssid", &left_position, &right_position, &direction, &pstop)) {
-		return NULL;
-	}
+static PyObject* add_edge (PyObject* self, PyObject* args){
+	char *src, *dst, *wgt;
+	PyObject *obj;
+	double pstop;
+    if(!PyArg_ParseTuple(args, "Od", &obj, &pstop)) {
+        return NULL;
+    }
+    if(!PyArg_ParseTuple(obj, "sss", &src, &dst, &wgt)) {
+        return NULL;
+    }
 	
 	// source
-	add_leftnode(left_position, right_position, direction, pstop);
+	add_leftnode(src, dst, pstop);
 	// destination
-	add_rightnode(right_position, left_position, direction, pstop);
+	add_rightnode(dst, src, pstop);
 
 	Py_RETURN_NONE;
 }
@@ -177,18 +198,18 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			// this step is O(n2) so things have to be efficient
 			distance = s1->location - s2->location;
-			//distance = (distance >= 0) ? distance : -distance;
 			if(-300 < distance && distance < 300){
+				// close by
 				if(s1->key != s2->value && s1->value != s2->key){
-					if(distance > 0){
-						// overlap
+					// not the same orf
+					if(strcmp(s1->type, s2->type) !=0 ){
+						// same direction
 						if(atoi(s1->value) < atoi(s2->key))
 							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance/3) ));
 					}else{
-						//gap
+						// different direction
 						if(atoi(s1->value) < atoi(s2->key))
-							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance/3) ));
-							//PyList_Append(new_edges, Py_BuildValue("ssi", s1->value, s2->value, 0));
+							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 20/pow((s1->pstop+s2->pstop)/2, distance/3) ));
 					}
 				}
 			}

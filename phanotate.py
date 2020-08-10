@@ -42,23 +42,16 @@ for id, dna in contigs.items():
 
 	contig_orfs.score()
 
-	import time
-
-	start = time.time()
-	print("start")
 	last_right = 0
-	entire = [1000000] * contig_orfs.contig_length()
+	entire = [[]] * contig_orfs.contig_length()
 
 	for orfs in contig_orfs.iter_in():
 		for orf in orfs:
 			for n in range(orf.left(), orf.right()):
-				entire[n] = min(last_right, entire[n])
-				if n == 35291:
-					print(last_right)
-			last_right = orf.right()
+				entire[n].append(orf.stop)
+			#last_right = orf.right()
 			break
-	end = time.time()
-	print(end - start)
+	print(entire)
 	exit()
 	for i, e in enumerate(entire):
 		print(i, ":", e, sep='', end='  ')

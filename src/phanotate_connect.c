@@ -196,7 +196,7 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			//printf("%s - %s\n", s1->key, s2->key);	
 			// this step is O(n2) so things have to be efficient
-			distance = s2->location - s1->location;
+			distance = s2->location - (s1->location+2);
 			if(-300 < distance && distance < 300){
 				distance = (distance >= 0) ? distance : -distance;
 				// close by
@@ -211,7 +211,7 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(1000/pow(pnots, distance/3),'f',0,0,NULL) ));
 						}else{
 							// different direction
-							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(20000+1000/pow(pnots, distance/3),'f',0,0,NULL) ));
+							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(20000/pow(pnots, distance/3),'f',0,0,NULL) ));
 						}
 					}
 				}

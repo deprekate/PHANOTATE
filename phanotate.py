@@ -42,20 +42,6 @@ for id, dna in contigs.items():
 
 	contig_orfs.score()
 
-	last_right = 0
-	entire = [[]] * contig_orfs.contig_length()
-
-	for orfs in contig_orfs.iter_in():
-		for orf in orfs:
-			for n in range(orf.left(), orf.right()):
-				entire[n].append(orf.stop)
-			#last_right = orf.right()
-			break
-	print(entire)
-	exit()
-	for i, e in enumerate(entire):
-		print(i, ":", e, sep='', end='  ')
-	exit()
 
 	#-------------------------------Create the Graph-------------------------------------------#
 
@@ -68,6 +54,24 @@ for id, dna in contigs.items():
 	# write edges to the graph
 	for orf in contig_orfs.iter_orfs():
 		ret = fz.add_edge( orf.as_scaled_edge() )
+
+
+	# find regions with no features that would break the path
+	entire = [None] * contig_orfs.contig_length()
+	for orfs in contig_orfs.iter_in():
+		for orf in orfs:
+			for n in range(orf.left(), orf.right()-1):
+				entire[n] = True
+			break
+	last = count = 0
+	for i, n in enumerate(entire):
+		if not n:
+			count += 1
+		else:
+			if count > 200:
+				fz.add_edge((str(last+1)+"_gap", str(i-1)+"_gap", str(count)))
+			last = i
+			count = 0
 
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():

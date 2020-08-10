@@ -2,8 +2,10 @@
 import os
 import sys
 import getopt
+import pkg_resources
 
 #from subprocess import Popen, PIPE, STDOUT
+pkg_resources.require("fastpath>=1.4")
 import fastpathz as fz
 import phanotate_connect as pc
 
@@ -40,17 +42,35 @@ for id, dna in contigs.items():
 
 	contig_orfs.score()
 
-	'''
-	for orfs in contig_orfs.iter_out():
+	import time
+
+	start = time.time()
+	print("start")
+	last_right = 0
+	entire = [1000000] * contig_orfs.contig_length()
+
+	for orfs in contig_orfs.iter_in():
 		for orf in orfs:
-			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.weight, sep='\t')
+			for n in range(orf.left(), orf.right()):
+				entire[n] = min(last_right, entire[n])
+				if n == 35291:
+					print(last_right)
+			last_right = orf.right()
+			break
+	end = time.time()
+	print(end - start)
 	exit()
-	'''
+	for i, e in enumerate(entire):
+		print(i, ":", e, sep='', end='  ')
+	exit()
+
 	#-------------------------------Create the Graph-------------------------------------------#
-#	my_graph = functions.get_graph(contig_orfs)
-	#scale = lambda a : (a[0], a[1], str(Decimal(a[2])*1000))
 
 	fz.empty_graph()
+
+	# write source and target edges to graph
+	fz.add_edge( contig_orfs.source_edge() )
+	fz.add_edge( contig_orfs.target_edge() )
 
 	# write edges to the graph
 	for orf in contig_orfs.iter_orfs():
@@ -58,23 +78,11 @@ for id, dna in contigs.items():
 
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():
-		print(edge)
-		ret = pc.add_edge(edge, contig_orfs.pnots)
+		ret = pc.add_edge( edge )
 
-	print("--------")
-	for edge in pc.get_connections():
-		print(edge)
-		#ret = fz.add_edge( "\t".join(map(str,edge)) )
-	exit()
-	
-	for orf in contig_orfs.iter_orfs():
-		if(orf.left() <= 2000):
-			edge = "\t".join(map(str, ['source', orf.left_node(), 1/(contig_orfs.pnots**orf.left())] ))
-			ret = fz.add_edge( edge )
-		if(contig_orfs.contig_length() - orf.right() <= 2000):
-			l = contig_orfs.contig_length() - orf.right()
-			edge = "\t".join(map(str, [orf.right_node(), 'target', 1/(contig_orfs.pnots**l)] ))
-			ret = fz.add_edge( edge )
+	# write edges to the graph
+	for edge in pc.get_connections(pnots=contig_orfs.pnots):
+		ret = fz.add_edge( edge )
 
 	if args.dump:
 		for edge in fz.get_edges():
@@ -82,7 +90,7 @@ for id, dna in contigs.items():
 		sys.exit()
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 
-	shortest_path = fz.get_path(source='source', target='target')[1:-1]
+	shortest_path = fz.get_path(source= contig_orfs.source_node(), target= contig_orfs.target_node())[1:-1]
 	
 	#-------------------------------Write Output ----------------------------------------------#
 	file_handling.write_output(contig_orfs, shortest_path)

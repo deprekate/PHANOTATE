@@ -126,14 +126,13 @@ struct my_struct {
 	char value[255];
 	int location;
 	char type[255];
-	double pstop;
 	UT_hash_handle hh;		            /* makes this structure hashable */
 };
 
 struct my_struct *nodes_left = NULL;	/* important! initialize to NULL */
 struct my_struct *nodes_right = NULL;   /* important! initialize to NULL */
 
-void add_leftnode(char *key, char *value, double pstop) {
+void add_leftnode(char *key, char *value) {
 	struct my_struct *s;
 
 	HASH_FIND_STR(nodes_left, key, s);  /* id already in the hash? */
@@ -141,14 +140,13 @@ void add_leftnode(char *key, char *value, double pstop) {
 		s = malloc(sizeof(struct my_struct));
 		strcpy(s->key, key);
 		strcpy(s->value, value);
-		s->pstop = pstop;
 		s->location = atoi(key);
 		strcpy(s->type, remove_digits(key));
 		HASH_ADD_STR( nodes_left, key, s );  /* id: name of key field */
 	}
 }
 
-void add_rightnode(char *key, char *value, double pstop) {
+void add_rightnode(char *key, char *value) {
 	struct my_struct *s;
 
 	HASH_FIND_STR(nodes_right, key, s);  /* id already in the hash? */
@@ -156,7 +154,6 @@ void add_rightnode(char *key, char *value, double pstop) {
 		s = malloc(sizeof(struct my_struct));
 		strcpy(s->key, key);
 		strcpy(s->value, value);
-		s->pstop = pstop;
 		s->location = atoi(key);
 		strcpy(s->type, remove_digits(key));
 		HASH_ADD_STR( nodes_right, key, s );  /* id: name of key field */
@@ -166,8 +163,7 @@ void add_rightnode(char *key, char *value, double pstop) {
 static PyObject* add_edge (PyObject* self, PyObject* args){
 	char *src, *dst, *wgt;
 	PyObject *obj;
-	double pstop;
-    if(!PyArg_ParseTuple(args, "Od", &obj, &pstop)) {
+    if(!PyArg_ParseTuple(args, "O", &obj)) {
         return NULL;
     }
     if(!PyArg_ParseTuple(obj, "sss", &src, &dst, &wgt)) {
@@ -175,20 +171,22 @@ static PyObject* add_edge (PyObject* self, PyObject* args){
     }
 	
 	// source
-	add_leftnode(src, dst, pstop);
+	add_leftnode(src, dst);
 	// destination
-	add_rightnode(dst, src, pstop);
+	add_rightnode(dst, src);
 
 	Py_RETURN_NONE;
 }
 
+
 static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwargs){
 	struct my_struct *s1;
     struct my_struct *s2;
+	double pnots = 0.99;
 	int min_distance = 300;
 
-	static char *kwlist[] = {"min_distance", NULL};
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwlist, &min_distance))
+	static char *kwlist[] = {"pnots", "min_distance", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "d|i", kwlist, &pnots, &min_distance))
 		return NULL;
 
 	PyObject *new_edges = PyList_New(0);
@@ -196,20 +194,25 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	// loop over all pairs
 	for(s1=nodes_right; s1 != NULL; s1=s1->hh.next) {
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
+			//printf("%s - %s\n", s1->key, s2->key);	
 			// this step is O(n2) so things have to be efficient
-			distance = s1->location - s2->location;
+			distance = s2->location - s1->location;
 			if(-300 < distance && distance < 300){
+				distance = (distance >= 0) ? distance : -distance;
 				// close by
 				if(s1->key != s2->value && s1->value != s2->key){
 					// not the same orf
-					if(strcmp(s1->type, s2->type) !=0 ){
-						// same direction
-						if(atoi(s1->value) < atoi(s2->key))
-							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 1/pow((s1->pstop+s2->pstop)/2, distance/3) ));
-					}else{
-						// different direction
-						if(atoi(s1->value) < atoi(s2->key))
-							PyList_Append(new_edges, Py_BuildValue("ssd", s1->key, s2->key, 20/pow((s1->pstop+s2->pstop)/2, distance/3) ));
+					if(atoi(s1->value) < atoi(s2->key)){
+						if(0){ //strcmp(s1->type, "_source")==0 || strcmp(s2->type, "_target") ){
+							// end cases
+							PyList_Append(new_edges, Py_BuildValue("ssO", s1->key, s2->key, PyUnicode_FromFormat("%d", 1000*distance) ));
+						}else if(strcmp(s1->type, s2->type) !=0 ){
+							// same direction
+							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(1000/pow(pnots, distance/3),'f',0,0,NULL) ));
+						}else{
+							// different direction
+							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(20000+1000/pow(pnots, distance/3),'f',0,0,NULL) ));
+						}
 					}
 				}
 			}

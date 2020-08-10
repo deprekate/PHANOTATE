@@ -6,8 +6,6 @@ import argparse
 from argparse import RawTextHelpFormatter
 from math import log
 
-from phanotate_modules.edges import Edge
-from phanotate_modules.nodes import Node
 
 def pairwise(iterable):
 	a = iter(iterable)
@@ -61,8 +59,12 @@ def read_fasta(filepath, base_trans=str.maketrans('','')):
 	return contigs_dict
 
 def write_output(contig_orfs, shortest_path):
-	if contig_orfs.outfmt == 'tabular':
+	if   contig_orfs.outfmt == 'tabular':
 		write_tabular(contig_orfs, shortest_path)
+	elif contig_orfs.outfmt == 'genbank':
+		write_genbank(contig_orfs, shortest_path)
+	elif contig_orfs.outfmt == 'fasta':
+		write_fasta(contig_orfs, shortest_path)
 
 
 def write_tabular(contig_orfs, shortest_path):
@@ -74,128 +76,70 @@ def write_tabular(contig_orfs, shortest_path):
 		feature = contig_orfs.get_feature(left, right)
 		if(feature.type == 'tRNA'):
 			continue
-		'''
-		'''
+
 		outfile.write('\t'.join(map(str, [feature.begin(), feature.end(), feature.direction(), contig_orfs.id, feature.weight, '\n'] )))
 
-def write_out(contig_orfs, shortest_path):
-	outfmt = args.outfmt
-	outfile = args.outfile
-	
-	if(not my_path):
-		outfile.write("#id:\t" + str(id[1:]) + " NO ORFS FOUND\n")
-	elif(outfmt == 'tabular'):
-		last_node = eval(my_path[-1])
-		outfile.write("#id:\t" + str(id[1:]) + "\n")
-		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
-		for source, target in pairwise(my_path):
-			left = eval(source)
-			right = eval(target)
-			weight = my_graph.weight(Edge(left,right,0))
-			if(left.gene == 'tRNA'):
-				continue
-			if(left.position == 0 and right.position == last_node.position):
-				left.position = abs(left.frame)
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				left.position = '<' + str(left.position)
-			elif(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-				right.position += 2
-			elif(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-			else:
-				right.position += 2
-			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+def write_genbank(contig_orfs, shortest_path):
+	outfile = contig_orfs.outfile
 
-	elif(outfmt == 'genbank'):
-		last_node = eval(my_path[-1])
-		outfile.write('LOCUS       ' + id[1:])
-		outfile.write(str(last_node.position-1).rjust(10))
-		outfile.write(' bp    DNA             PHG\n')
-		outfile.write('DEFINITION  ' + id[1:] + '\n')
-		outfile.write('FEATURES             Location/Qualifiers\n')
-		outfile.write('     source          1..' + str(last_node.position-1) + '\n')
-		for source, target in pairwise(my_path):
-			#get the orf
-			left = eval(source)
-			right = eval(target)
-			weight = my_graph.weight(Edge(left,right,0))
-			if(left.gene == 'tRNA' or right.gene == 'tRNA'):
-				outfile.write('     ' + left.gene.ljust(16))
-				if(left.frame > 0):
-					outfile.write(str(left.position) + '..' + str(right.position) + '\n')
-				else:
-					outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
-				continue
-				
+	outfile.write('LOCUS       ')
+	outfile.write(contig_orfs.id)
+	outfile.write(str(contig_orfs.contig_length()).rjust(10))
+	outfile.write(' bp    DNA             PHG')
+	outfile.write('\n')
+	outfile.write('DEFINITION  ' + contig_orfs.id + '\n')
+	outfile.write('FEATURES             Location/Qualifiers\n')
+	outfile.write('     source          1..')
+	outfile.write(str(contig_orfs.contig_length()))
+	outfile.write('\n')
+	for left, right in pairwise(shortest_path):
+		feature = contig_orfs.get_feature(left, right)
+		if(feature.type == 'tRNA'):
+			outfile.write('     ' + left.type.ljust(16))
 			if(left.frame > 0):
-				orf = my_orfs.get_orf(left.position, right.position)
-			else:
-				orf = my_orfs.get_orf(right.position, left.position)
-			#properly display the orf
-			if(not orf.has_start() and not orf.has_stop()):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-			else:
-				right.position += 2
-			outfile.write('     ' + left.gene.ljust(16))
-			if(left.type == 'start' and right.type == 'stop'):
 				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
-			elif(left.type == 'stop' and right.type == 'start'):
+			else:
 				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
-			outfile.write('                     /note="weight=' + '{:.2E}'.format(weight) + ';"\n')
-		outfile.write('ORIGIN')
-		i = 0
-		dna = textwrap.wrap(my_orfs.dna, 10)
-		for block in dna:
-			if(i%60 == 0):
-				outfile.write('\n')
-				outfile.write(str(i+1).rjust(9))
-				outfile.write(' ')
-				outfile.write(block.lower())
-			else:
-				outfile.write(' ')
-				outfile.write(block.lower())
-			i += 10
+			continue
 			
-		outfile.write('\n')	
-		outfile.write('//')
-		outfile.write('\n')
-	elif(outfmt == 'fasta'):
-		last_node = eval(my_path[-1])
-		for source, target in pairwise(my_path):
-			left = eval(source)
-			right = eval(target)
-			if(left.gene == 'tRNA'):
-				continue
-			if(left.frame > 0):
-				orf = my_orfs.get_orf(left.position, right.position)
-			else:
-				orf = my_orfs.get_orf(right.position, left.position)
-			if(left.gene == 'CDS'):
-				weight = my_graph.weight(Edge(left,right,0))
-				if(left.position == 0 and right.position == last_node.position):
-					left.position = abs(left.frame)
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-					left.position = '<' + str(left.position)
-				elif(left.position == 0):
-					left.position = '<' + str(((right.position+2)%3)+1)
-					right.position += 2
-				elif(right.position == last_node.position):
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				else:
-					right.position += 2
-				if(left.type == 'start' and right.type == 'stop'):
-					#outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-					outfile.write(id + "." + str(right.position) + " [START=" + str(left.position) + "] [SCORE=" + str(weight) + "]\n")
-				elif(left.type == 'stop' and right.type == 'start'):
-					#outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
-					outfile.write(id + "." + str(left.position) + " [START=" + str(right.position) + "] [SCORE=" + str(weight) + "]\n")
-				outfile.write(orf.seq)
-				outfile.write("\n")
+		outfile.write('     ' + feature.type.ljust(16))
+		if feature.frame > 0:
+			outfile.write(feature.begin() + '..' + feature.end() + '\n')
+		else:
+			outfile.write('complement(' + feature.end() + '..' + feature.begin() + ')\n')
+		outfile.write('                     /note="weight=' + '{:.2E}'.format(feature.weight) + ';"\n')
+	outfile.write('ORIGIN')
+	i = 0
+	dna = textwrap.wrap(contig_orfs.dna, 10)
+	for block in dna:
+		if(i%60 == 0):
+			outfile.write('\n')
+			outfile.write(str(i+1).rjust(9))
+			outfile.write(' ')
+			outfile.write(block.lower())
+		else:
+			outfile.write(' ')
+			outfile.write(block.lower())
+		i += 10
+		
+	outfile.write('\n')	
+	outfile.write('//')
+	outfile.write('\n')
+
+def write_fasta(contig_orfs, shortest_path):
+	outfile = contig_orfs.outfile
+	for left, right in pairwise(shortest_path):
+		feature = contig_orfs.get_feature(left, right)
+
+		if(feature.type == 'CDS'):
+			#outfile.write('\t'.join(map(str, [feature.begin(), feature.end(), feature.direction(), contig_orfs.id, feature.weight, '\n'] )))
+			#outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+			outfile.write(">" + contig_orfs.id + "_" + feature.end().strip("<>"))
+			outfile.write(" [START=" + feature.begin().strip("<>") + "]")
+			outfile.write(" [STOP=" + feature.end().strip("<>") + "]")
+			outfile.write(" [SCORE=" + '{:.2E}'.format(feature.weight) + "]")
+			outfile.write("\n")
+			outfile.write(feature.dna)
+			outfile.write("\n")
 
 

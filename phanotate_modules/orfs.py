@@ -128,25 +128,23 @@ class Orfs(dict):
 				return list[0]
 			else:
 				return list[-1]
-	def get_orf(self, left, right):
-		if right in self:
-			if left in self[right]:
-				return self[right][left]
-			else:
-				raise ValueError("orf with start codon not found")
-		elif left in self:
-			if right in self[left]:
-				return self[left][right]
+	def get_orf(self, start, stop):
+		if stop in self:
+			if start in self[stop]:
+				return self[stop][start]
 			else:
 				raise ValueError("orf with start codon not found")
 		else:
 			raise ValueError(" orf with stop codon not found")
+
 	def get_feature(self, left, right):
-		feature_type = left[-1]
-		left = int(left[:-1])
-		right = int(right[:-1])
-		if feature_type == 'o':
+		feature_type = left.split('_')[1]
+		left = int(left.split('_')[0])
+		right = int(right.split('_')[0])
+		if feature_type == 'start':
 			return self.get_orf(left, right)
+		elif feature_type == 'stop':
+			return self.get_orf(right, left)
 
 	def contig_length(self):
 		return len(self.dna)
@@ -246,11 +244,24 @@ class Orfs(dict):
 
 	def calculate_weights(self):
 		pass
+
+	def source_node(self):
+		return '0_source'
+
+	def source_edge(self):
+		return (self.source_node(), self.source_node(), '1')
+
+	def target_node(self):
+		return '%s_target' % str(self.contig_length())
+
+	def target_edge(self):
+		return (self.target_node(), self.target_node(), '1')
+
 		
 	
 class Orf:
 	def __init__(self, start, stop, frame, parent): #, frame, seq=None, rbs=None, start_codons=None, stop_codons=None):
-		self.type = 'orf'
+		self.type = 'CDS'
 		self.start = start
 		self.stop = stop
 		self.frame = frame
@@ -274,9 +285,9 @@ class Orf:
 
 	def as_scaled_edge(self):
 		if self.frame > 0:
-			return ("%sstart" % self.left(), "%sstop" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_start" % self.left(), "%s_stop" % (self.right()-2), "%s" % (self.weight*1000))
 		else:
-			return ("%sstop" % self.left(), "%sstart" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_stop" % self.left(), "%s_start" % (self.right()-2), "%s" % (self.weight*1000))
 
 	def gc_frame_plot(self):
 		gcfp = self.parent.gc_frame_plot

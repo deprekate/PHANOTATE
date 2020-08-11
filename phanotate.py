@@ -56,26 +56,15 @@ for id, dna in contigs.items():
 		ret = fz.add_edge( orf.as_scaled_edge() )
 
 
-	# find regions with no features that would break the path
-	entire = [None] * contig_orfs.contig_length()
-	for orfs in contig_orfs.iter_in():
-		for orf in orfs:
-			for n in range(orf.left(), orf.right()-1):
-				entire[n] = True
-			break
-	last = count = 0
-	for i, n in enumerate(entire):
-		if not n:
-			count += 1
-		else:
-			if count > 200:
-				fz.add_edge((str(last+1)+"_gap", str(i-1)+"_gap", str(count)))
-			last = i
-			count = 0
-
+	
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():
 		ret = pc.add_edge( edge )
+
+	# find regions with no features that would break the path
+	for edge in pc.get_gaps():
+		ret = pc.add_edge( edge )
+	exit()
 
 	# write edges to the graph
 	for edge in pc.get_connections(pnots=contig_orfs.pnots):

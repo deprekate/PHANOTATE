@@ -120,7 +120,6 @@ void remove_newline(char *line){
 		line[new_line] = '\0';
 }
 
-
 struct my_struct {
 	char key[255];		            /* key */
 	char value[255];
@@ -160,6 +159,27 @@ void add_rightnode(char *key, char *value) {
 	}
 }
 
+struct not_gaps {
+	int location;
+	UT_hash_handle hh;		            /* makes this structure hashable */
+};
+struct not_gaps *iscoding = NULL;	        /* important! initialize to NULL */
+
+void add_coding(int loc) {
+	struct not_gaps *s;
+
+	HASH_FIND_INT(iscoding, &loc, s);      /* id already in the hash? */
+	if(s==NULL){
+		s = malloc(sizeof(struct not_gaps));
+		s->location = loc;
+		HASH_ADD_INT(iscoding, location, s );  /* id: name of key field */
+	}
+}
+
+// dont forget to empty
+
+int max_pos = 0;
+
 static PyObject* add_edge (PyObject* self, PyObject* args){
 	char *src, *dst, *wgt;
 	PyObject *obj;
@@ -175,9 +195,50 @@ static PyObject* add_edge (PyObject* self, PyObject* args){
 	// destination
 	add_rightnode(dst, src);
 
+	// do stuff for gap filling
+	int i;
+	int left = atoi(src);
+	int right = atoi(dst);
+	for(i=left; i<=right; i++){
+		add_coding(i);
+	}
+	max_pos = (right > max_pos) ? right : max_pos;	
+
 	Py_RETURN_NONE;
 }
 
+
+static PyObject* get_gaps (PyObject* self, PyObject* args, PyObject *kwargs){
+	int min_distance = 300;
+
+	static char *kwlist[] = {"min_distance", NULL};
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", kwlist, &min_distance))
+		return NULL;
+
+	struct not_gaps *s;
+	int *bases = malloc (sizeof (int) * max_pos);
+	memset (bases, 0, sizeof (int) * max_pos);
+
+
+	for(s=iscoding; s != NULL; s=s->hh.next) {
+		bases[s->location] = 1;	
+	}
+
+	int i, last = 0, count = 0;
+	PyObject *new_edges = PyList_New(0);
+	for(i=0; i<max_pos; i++){
+		if(!bases[i]){
+			count++;
+		}else{
+			if(count > min_distance)
+				PyList_Append(new_edges, Py_BuildValue("OOO", PyUnicode_FromFormat("%d_gap", last+1), PyUnicode_FromFormat("%d_gap", i-1), PyUnicode_FromFormat("%d", 1000*count) ));
+			last = i;
+			count = 0;
+		}
+	}
+
+	return new_edges;
+}
 
 static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwargs){
 	struct my_struct *s1;
@@ -231,6 +292,7 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 // We require this `NULL` to signal the end of our method
 static PyMethodDef phanotate_connect_methods[] = {
 	{ "get_connections", (PyCFunction) get_connections, METH_VARARGS | METH_KEYWORDS, "Returns the edges of connections orfs" },
+	{ "get_gaps",        (PyCFunction) get_gaps,        METH_VARARGS | METH_KEYWORDS, "Returns the gaps as edges" },
 	{ "add_edge",        (PyCFunction) add_edge,        METH_VARARGS | METH_KEYWORDS, "Adds an edge to the graph" },
 	{ NULL, NULL, 0, NULL }
 };

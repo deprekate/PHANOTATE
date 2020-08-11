@@ -36,9 +36,15 @@ class Orfs(dict):
 		self.other_end = dict()
 		self.start_codons = ['ATG', 'GTG', 'TTG']
 		self.stop_codons = ['TAA', 'TGA', 'TAG']
+		self.start_weight = {'ATG' : 3, 'CAT' : 3,
+							 'GTG' : 2, 'CAC' : 2,
+							 'TTG' : 1, 'CAA' : 1
+							 }
+		'''
 		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
 							 'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
 							 'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
+		'''
 		self.gc_frame_plot = None
 		self.rbs_scorer = ScoreXlationInit()
 

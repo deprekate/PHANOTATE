@@ -216,8 +216,8 @@ static PyObject* get_gaps (PyObject* self, PyObject* args, PyObject *kwargs){
 		return NULL;
 
 	struct not_gaps *s;
-	int *bases = malloc (sizeof (int) * max_pos);
-	memset (bases, 0, sizeof (int) * max_pos);
+	int *bases = malloc (sizeof (int) * max_pos+1);
+	memset (bases, 0, sizeof (int) * max_pos+1);
 
 
 	for(s=iscoding; s != NULL; s=s->hh.next) {
@@ -226,12 +226,12 @@ static PyObject* get_gaps (PyObject* self, PyObject* args, PyObject *kwargs){
 
 	int i, last = 0, count = 0;
 	PyObject *new_edges = PyList_New(0);
-	for(i=0; i<max_pos; i++){
+	for(i=0; i<=max_pos; i++){
 		if(!bases[i]){
 			count++;
 		}else{
-			if(count > min_distance)
-				PyList_Append(new_edges, Py_BuildValue("OOO", PyUnicode_FromFormat("%d_gap", last+1), PyUnicode_FromFormat("%d_gap", i-1), PyUnicode_FromFormat("%d", 1000*count) ));
+			if(count >= min_distance)
+				PyList_Append(new_edges, Py_BuildValue("OOO", PyUnicode_FromFormat("%d_gap", last+1), PyUnicode_FromFormat("%d_gap", i-1), PyUnicode_FromFormat("%d", count) ));
 			last = i;
 			count = 0;
 		}
@@ -255,19 +255,16 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	// loop over all pairs
 	for(s1=nodes_right; s1 != NULL; s1=s1->hh.next) {
 	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
-			//printf("%s - %s\n", s1->key, s2->key);	
 			// this step is O(n2) so things have to be efficient
 			distance = s2->location - (s1->location+2);
 			if(-300 < distance && distance < 300){
 				distance = (distance >= 0) ? distance : -distance;
 				// close by
 				if(s1->key != s2->value && s1->value != s2->key){
+					//printf("%s - %s\n", s1->key, s2->key);	
 					// not the same orf
 					if(atoi(s1->value) < atoi(s2->key)){
-						if(0){ //strcmp(s1->type, "_source")==0 || strcmp(s2->type, "_target") ){
-							// end cases
-							PyList_Append(new_edges, Py_BuildValue("ssO", s1->key, s2->key, PyUnicode_FromFormat("%d", 1000*distance) ));
-						}else if(strcmp(s1->type, s2->type) !=0 ){
+						if(strcmp(s1->type, s2->type) !=0 ){
 							// same direction
 							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(1000/pow(pnots, distance/3),'f',0,0,NULL) ));
 						}else{

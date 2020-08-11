@@ -55,18 +55,16 @@ for id, dna in contigs.items():
 	for orf in contig_orfs.iter_orfs():
 		ret = fz.add_edge( orf.as_scaled_edge() )
 
-
-	
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():
 		ret = pc.add_edge( edge )
 
 	# find regions with no features that would break the path
 	for edge in pc.get_gaps():
+		ret = fz.add_edge( edge )
 		ret = pc.add_edge( edge )
-	exit()
 
-	# write edges to the graph
+	# write connections to the graph
 	for edge in pc.get_connections(pnots=contig_orfs.pnots):
 		ret = fz.add_edge( edge )
 

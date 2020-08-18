@@ -37,6 +37,15 @@ def get_args():
 
 	args = parser.parse_args()
 
+	args.min_orf_len  = 87
+	args.start_codons = ['ATG' ,'GTG', 'TTG']
+	args.stop_codons  = ['TAG' ,'TGA', 'TAA']
+	args.start_weight = {
+						 'ATG':1.00, 'CAT':1.00,
+						 'GTG':0.12, 'CAC':0.12,
+						 'TTG':0.05, 'CAA':0.05
+						}
+
 	return args
 
 
@@ -94,21 +103,14 @@ def write_genbank(contig_orfs, shortest_path):
 	outfile.write('\n')
 	for left, right in pairwise(shortest_path):
 		feature = contig_orfs.get_feature(left, right)
-		if(feature.type == 'tRNA'):
-			outfile.write('     ' + left.type.ljust(16))
-			if(left.frame > 0):
-				outfile.write(str(left.position) + '..' + str(right.position) + '\n')
-			else:
-				outfile.write('complement(' + str(left.position) + '..' + str(right.position) + ')\n')
-			continue
-			
-		outfile.write('     ' + feature.type.ljust(16))
+		outfile.write('     ' + type(feature).__name__.ljust(16))
 		if feature.frame > 0:
 			outfile.write(feature.begin() + '..' + feature.end() + '\n')
 		else:
 			outfile.write('complement(' + feature.end() + '..' + feature.begin() + ')\n')
 		outfile.write('                     /note="weight=' + '{:.2E}'.format(feature.weight) + ';"\n')
 	outfile.write('ORIGIN')
+	return
 	i = 0
 	dna = textwrap.wrap(contig_orfs.dna, 10)
 	for block in dna:

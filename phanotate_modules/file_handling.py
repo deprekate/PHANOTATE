@@ -1,4 +1,6 @@
 import sys
+import io
+import gzip
 import os.path
 import itertools
 import textwrap
@@ -53,15 +55,17 @@ def read_fasta(filepath, base_trans=str.maketrans('','')):
 	contigs_dict = dict()
 	name = ''
 	seq = ''
-	with open(filepath, mode="r") as f:
+	lib = gzip if filepath.endswith(".gz") else io
+
+	with lib.open(filepath, mode="rb") as f:
 		for line in f:
-			if line.startswith(">"):
+			if line.startswith(b'>'):
 				contigs_dict[name] = seq
-				name = line[1:].split()[0]
+				name = line[1:].decode("utf-8").split()[0]
 				seq = ''
 			else:
 				#seq += line.replace("\n", "").upper()
-				seq += line[:-1].upper()
+				seq += line[:-1].decode("utf-8").upper()
 		contigs_dict[name] = seq.translate(base_trans)
 
 	if '' in contigs_dict: del contigs_dict['']

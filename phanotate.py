@@ -51,10 +51,12 @@ for id, dna in contigs.items():
 
 	'''
 	print(contig_features.pnots)
-	for orfs in contig_features.iter_out():
+	for orfs in contig_features.iter_orfs('out'):
 		for orf in orfs:
-			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.score_rbs(), orf.pstop, orf.start_codon(), orf.weight, sep='\t')
-
+			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.rbs_score, orf.pstop, orf.start_codon(), orf.weight, orf.good, sep='\t')
+	exit()
+	'''
+	'''
 	scores = list()
 	for orf in contig_features.iter_orfs():
 			scores.append(orf.score_rbs())

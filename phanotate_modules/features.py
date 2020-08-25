@@ -1,5 +1,6 @@
 import sys
 import itertools
+from math import log2
 from math import log10
 from decimal import Decimal
 
@@ -22,17 +23,22 @@ class Features(list):
 		self.cds = dict()
 		self.feature_at = dict()
 
+		nucs = ['T', 'C', 'A', 'G']
+		codons = [a+b+c for a in nucs for b in nucs for c in nucs]
+		amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+		self.translate_codon = dict(zip(codons, amino_acids))
+
 	def score_orfs(self):
 		pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 		pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 
 		self.pos_min = pos_min
 		self.pos_max = pos_max
-		#self.classify_orfs()
+		self.classify_orfs()
 		for orfs in self.iter_orfs('in'):
 			for orf in orfs:
-				if(orf.start_codon() == 'ATG'):
-				#if(orf.good):
+				#if(orf.start_codon() == 'ATG'):
+				if(orf.good):
 					#n = int(orf.length()/10)
 					#for base in range(start+n, stop-36, 3):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
@@ -40,25 +46,41 @@ class Features(list):
 							pos_max[max_frame] += 1
 					break
 		# normalize to one
+		#print(pos_min)
+		#print(pos_max)
 		y = max(pos_min)
 		pos_min[:] = [x / y for x in pos_min]	
 		y = max(pos_max)
 		pos_max[:] = [x / y for x in pos_max]	
-		
+		#print(pos_min)
+		#print(pos_max)
+
 		for orf in self.iter_orfs():
 			orf.weight = 1
+			orf.rbs_score = self.score_rbs(orf.rbs)
 			for min_frame,max_frame in zip(orf.min_frames, orf.max_frames):
 				orf.weight = orf.weight * ((orf.pnots**pos_min[min_frame])**pos_max[max_frame])
+
 			orf.weight = 1 / orf.weight
+
 			if(orf.start_codon() in self.start_weight):
 				orf.weight = orf.weight * Decimal(self.start_weight[orf.start_codon()])
-			orf.weight = orf.weight * self.score_rbs(orf.rbs)
+			orf.weight = orf.weight * orf.rbs_score
 			orf.weight = -orf.weight
-
-
+		'''
+		o = self.get_orf(55506,55002)
+		print(o.min_frames)
+		print(o.max_frames)
+		print(o.weight)
+		o = self.get_orf(55035,55350)
+		print(o.min_frames)
+		print(o.max_frames)
+		print(o.weight)
+		exit()
+		'''
 
 	def score_rbs(self, seq):
-		return 1 + Decimal(str(self.rbs_scorer.score_init_rbs(seq, 20)[0]))
+		return Decimal(str(max(2,self.rbs_scorer.score_init_rbs(seq, 20)[0]))).ln()/Decimal(2).ln()
 
 	def seq(self, a, b):
 			return self.dna[ a-1 : b ]
@@ -116,7 +138,9 @@ class Features(list):
 	def get_orf(self, start, stop):
 		orfs = self.cds
 		if stop in orfs:
-			if start in orfs[stop]:
+			if not start:
+				return orfs[stop]
+			elif start in orfs[stop]:
 				return orfs[stop][start]
 			else:
 				raise ValueError("orf with start codon not found")
@@ -136,19 +160,26 @@ class Features(list):
 		import numpy as np
 		from sklearn.preprocessing import StandardScaler
 		from sklearn.cluster import KMeans
+		from sklearn.mixture import GaussianMixture
 		from .kmeans import KMeans as KM
+
 		X = []
+		Y = []
 		for orf in self.iter_orfs():
+			counts = orf.amino_acid_entropies()
 			point = []
 			for aa in list('ARNDCEQGHILKMFPSTWYV'):
-				point.append(orf.amino_acid_frequency(aa))
+				point.append(counts[aa])
 			X.append(point)
-			
-		kmeans = KM(n_clusters=3).fit(X)
-		val, idx = min((val, idx) for (idx, val) in enumerate(kmeans.withinss_))
+			Y.append(orf)
+		X = StandardScaler().fit_transform(X)
 
-		for i, orf in enumerate(self.iter_orfs()):
-			if kmeans.labels_[i] == idx:
+		model = GaussianMixture(n_components=3, n_init=10, covariance_type='spherical', reg_covar=0.01).fit(X)
+		labels = model.predict(X)
+		idx = np.argmin(model.covariances_)
+
+		for label, orf in zip(labels, Y):
+			if label == idx:
 				orf.good = 1
 			else:
 				orf.good = 0

@@ -50,10 +50,13 @@ for id, dna in contigs.items():
 		contig_features.add_feature( trna )
 
 	'''
-	print(contig_features.pnots)
-	for orfs in contig_features.iter_orfs('out'):
-		for orf in orfs:
-			print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.rbs_score, orf.pstop, orf.start_codon(), orf.weight, orf.good, sep='\t')
+	#print('#id:\t' + id)
+	for orf in contig_features.iter_orfs():
+		#print(orf.begin(), orf.end(), orf.start_codon(), sep='\t', end='\t')
+		#for aa in list('ARNDCEQGHILKMFPSTWYV'):
+		#	print(orf.amino_acid_count(aa), end='\t')
+		#print()
+		print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.rbs_score, orf.pstop, orf.start_codon(), orf.weight, orf.good, sep='\t')
 	exit()
 	'''
 	'''

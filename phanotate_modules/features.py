@@ -54,6 +54,7 @@ class Features(list):
 		pos_max[:] = [x / y for x in pos_max]	
 		#print(pos_min)
 		#print(pos_max)
+		#exit()
 
 		for orf in self.iter_orfs():
 			orf.weight = 1
@@ -148,7 +149,7 @@ class Features(list):
 			raise ValueError(" orf with stop codon not found")
 
 	def get_feature(self, left, right):
-		return self.feature_at[ (left, right) ]
+		return self.feature_at.get( (left, right) , None )
 
 	def contig_length(self):
 		return len(self.dna)
@@ -165,24 +166,30 @@ class Features(list):
 
 		X = []
 		Y = []
-		for orf in self.iter_orfs():
-			counts = orf.amino_acid_entropies()
-			point = []
-			for aa in list('ARNDCEQGHILKMFPSTWYV'):
-				point.append(counts[aa])
-			X.append(point)
-			Y.append(orf)
+		for orfs in self.iter_orfs('in'):
+			i = 0
+			for orf in orfs:
+				counts = orf.amino_acid_entropies()
+				point = []
+				for aa in list('ARNDCEQGHILKMFPSTWYV'):
+					point.append(counts[aa])
+				X.append(point)
+				Y.append(orf)
+				i += 1
+				if i >= 10:
+					break
 		X = StandardScaler().fit_transform(X)
 
 		model = GaussianMixture(n_components=3, n_init=10, covariance_type='spherical', reg_covar=0.01).fit(X)
 		labels = model.predict(X)
-		idx = np.argmin(model.covariances_)
+		#idx = np.argmin(model.covariances_)
+		variances = [np.sum(np.var(X[labels==i], axis=0)) for i in range(3)]
+		idx = np.argmin(variances)
 
 		for label, orf in zip(labels, Y):
 			if label == idx:
 				orf.good = 1
-			else:
-				orf.good = 0
+				#sys.stderr.write(orf.end() + "\n")
 
 	def parse_contig(self, id, dna):
 		self.id = id

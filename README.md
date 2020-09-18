@@ -19,6 +19,10 @@ or
  python3 setup.py install
 ```
 
+Dependencies
+--------------
+
+[Optionnal] [trnascan-se](http://trna.ucsc.edu/tRNAscan-SE/) 
 
 PHANOTATE Example
 --------------

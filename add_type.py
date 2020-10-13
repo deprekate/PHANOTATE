@@ -12,8 +12,10 @@ for line_stdin in fileinput.input():
 		with open("/home3/katelyn/projects/PHANOTATE_DATA/" + line_stdin.split()[1] + "/" + line_stdin.split()[1] + ".gb") as f:
 			for line in f:
 				if line.startswith("     CDS   "):
-					line = re.sub(r'\.\..*\.\.', '..', line)
-					stop_locations[ line.replace("join", "").replace("(", " ").replace(")", " ").replace("..", " ").split()[2] ] = "coding"
+					#line = re.sub(r'\.\..*\.\.', '..', line)
+					#stop_locations[ line.replace("join", "").replace("(", " ").replace(")", " ").replace("..", " ").split()[2] ] = "coding"
+					stop_locations[ line.replace("(", " ").replace(")", " ").replace("..", " ").split()[2] ] = "coding"
+		#print(stop_locations)
 	# continue with rest of PHANOTATE calls and add genbank annotation type
 	elif not line_stdin.startswith("#"):
 		line_stdin = line_stdin.replace('<', '').replace('>', '')

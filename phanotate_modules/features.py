@@ -2,6 +2,7 @@ import sys
 import itertools
 from math import log2
 from math import log10
+from math import sqrt
 from decimal import Decimal
 
 #from .kmeans import KMeans
@@ -10,6 +11,18 @@ from .orf import CDS
 from .functions import *
 from score_rbs import ScoreXlationInit
 
+import numpy as np
+def aad(data, axis=None):
+        return np.mean(np.absolute(data - np.mean(data, axis)), axis)
+setattr(np, 'aad', aad)
+def mad(data, axis=None):
+        return np.median(np.absolute(data - np.mean(data, axis)), axis)
+setattr(np, 'mad', mad)
+def argmid(x):
+    for i, item in enumerate(x):
+        if item != min(x) and item != max(x):
+            return i
+setattr(np, 'argmid', argmid)
 
 class Features(list):
 	"""The class holding the orfs"""
@@ -37,35 +50,34 @@ class Features(list):
 		self.classify_orfs()
 		for orfs in self.iter_orfs('in'):
 			for orf in orfs:
-				#if(orf.start_codon() == 'ATG'):
-				if(orf.good):
+				if(orf.start_codon() == 'ATG'):
+				#if(orf.good):
 					#n = int(orf.length()/10)
 					#for base in range(start+n, stop-36, 3):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
 							pos_min[min_frame] += 1
 							pos_max[max_frame] += 1
+					#print(orf.start, orf.stop)
+					#print(orf.min_frames)
+					#print(orf.max_frames)
 					break
 		# normalize to one
-		#print(pos_min)
-		#print(pos_max)
 		y = max(pos_min)
 		pos_min[:] = [x / y for x in pos_min]	
 		y = max(pos_max)
 		pos_max[:] = [x / y for x in pos_max]	
-		#print(pos_min)
-		#print(pos_max)
-		#exit()
+		#print(pos_min) ; print(pos_max) ; exit()
 
 		for orf in self.iter_orfs():
-			orf.weight = 1
+			orf.weight = Decimal(1)
 			orf.rbs_score = self.score_rbs(orf.rbs)
 			for min_frame,max_frame in zip(orf.min_frames, orf.max_frames):
 				orf.weight = orf.weight * ((orf.pnots**pos_min[min_frame])**pos_max[max_frame])
 
 			orf.weight = 1 / orf.weight
 
-			if(orf.start_codon() in self.start_weight):
-				orf.weight = orf.weight * Decimal(self.start_weight[orf.start_codon()])
+			if(orf.start_codon() in self.start_codons):
+				orf.weight = orf.weight * Decimal(self.start_codons[orf.start_codon()])
 			orf.weight = orf.weight * orf.rbs_score
 			orf.weight = -orf.weight
 		'''
@@ -135,6 +147,15 @@ class Features(list):
 				else:
 					keylist.sort()
 				yield (orfs[stop][start] for start in keylist)
+		elif kind == 'half':
+			for stop in orfs.keys():
+				keylist = list(orfs[stop].keys())
+				if(orfs[stop][keylist[0]].frame > 0):
+					keylist.sort()
+				else:
+					keylist.sort(reverse=True)
+				keylist = keylist[ : -(-len(keylist)//2)]
+				yield (orfs[stop][start] for start in keylist)
 
 	def get_orf(self, start, stop):
 		orfs = self.cds
@@ -148,6 +169,13 @@ class Features(list):
 		else:
 			raise ValueError(" orf with stop codon not found")
 
+	def get_orfs(self, stop):
+		orfs = self.cds
+		if stop in orfs:
+			return orfs[stop]
+		else:
+			raise ValueError(" orf with stop codon not found")
+
 	def get_feature(self, left, right):
 		return self.feature_at.get( (left, right) , None )
 
@@ -156,40 +184,55 @@ class Features(list):
 	
 	def end(self, frame):
 		return self.contig_length() - ((self.contig_length() - (frame-1))%3)
-	
+
+	def num_orfs(self, kind='all'):
+		count = 0
+		if kind == 'all':
+			for orf in self.iter_orfs():
+				count += 1
+		else:
+			count = len(self.cds)
+		return count
+
 	def classify_orfs(self):
-		import numpy as np
 		from sklearn.preprocessing import StandardScaler
 		from sklearn.cluster import KMeans
 		from sklearn.mixture import GaussianMixture
+		from sklearn.cluster import AgglomerativeClustering
 		from .kmeans import KMeans as KM
 
 		X = []
 		Y = []
-		for orfs in self.iter_orfs('in'):
-			i = 0
+		uni = 0
+		for orfs in self.iter_orfs('half'):
 			for orf in orfs:
 				counts = orf.amino_acid_entropies()
 				point = []
 				for aa in list('ARNDCEQGHILKMFPSTWYV'):
 					point.append(counts[aa])
+				point.append( orf.length() / 3 - 1)
 				X.append(point)
 				Y.append(orf)
-				i += 1
-				if i >= 10:
-					break
+			uni += 1
+
 		X = StandardScaler().fit_transform(X)
 
-		model = GaussianMixture(n_components=3, n_init=10, covariance_type='spherical', reg_covar=0.01).fit(X)
-		labels = model.predict(X)
+		#model = GaussianMixture(n_components=3, n_init=10, covariance_type='spherical', reg_covar=0.00001).fit(X)
+		n_clust = 2 if len(X)+uni<300 else (3 if len(X)+uni<1500 else 4)
+		labels = KMeans(n_clusters=n_clust, n_init=50).fit_predict(X)
+		#labels = model.predict(X)
+		#labels = AgglomerativeClustering(n_clusters=n_clust, linkage='ward').fit_predict(X)
 		#idx = np.argmin(model.covariances_)
-		variances = [np.sum(np.var(X[labels==i], axis=0)) for i in range(3)]
+		X = X[:,:-1]
+		variances = [np.sum(np.mad(X[labels==i], axis=0)) for i in range(n_clust)]
 		idx = np.argmin(variances)
 
+		#l = [len(X[labels==i]) for i in range(n_clust)] ; print('len', l)
 		for label, orf in zip(labels, Y):
 			if label == idx:
-				orf.good = 1
+				orf.good = True
 				#sys.stderr.write(orf.end() + "\n")
+				#print(orf.end())
 
 	def parse_contig(self, id, dna):
 		self.id = id
@@ -217,7 +260,7 @@ class Features(list):
 			starts[2].append(2)
 		if dna[2:5] not in self.start_codons:
 			starts[3].append(3)
-	
+
 		# Reset iterator and find all the open reading frames
 		states = itertools.cycle([1, 2, 3])
 		for i in range(1, (len(dna)-1)):

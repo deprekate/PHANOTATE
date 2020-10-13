@@ -44,19 +44,34 @@ for id, dna in contigs.items():
 
 	contig_features.score_orfs()
 
+
+	'''
+	end_start = dict()
+	with open("/home3/katelyn/projects/PHANOTATE_DATA/" + id + "/" + id + ".starts-ends") as f:
+		for line in f:
+			start, end = line.rstrip().split('\t')
+			end_start[end] = start
+
+	for orfs in contig_features.iter_orfs('in'):
+		for i, orf in enumerate(orfs):
+			if orf.end() in end_start and orf.begin() == end_start[orf.end()]:
+				print(id, orf.end(), i, len(contig_features.get_orfs(orf.stop)), sep='\t')
+	exit()
+	'''
+
 	# find other features
 	from phanotate_modules.trnas import tRNAs
 	for trna in tRNAs(contig_features.dna):
 		contig_features.add_feature( trna )
 
 	'''
-	#print('#id:\t' + id)
-	for orf in contig_features.iter_orfs():
-		#print(orf.begin(), orf.end(), orf.start_codon(), sep='\t', end='\t')
-		#for aa in list('ARNDCEQGHILKMFPSTWYV'):
-		#	print(orf.amino_acid_count(aa), end='\t')
-		#print()
-		print(orf.left(), orf.right(), orf.stop, orf.rbs, orf.rbs_score, orf.pstop, orf.start_codon(), orf.weight, orf.good, sep='\t')
+	print('#id:\t' + id)
+	for orfs in contig_features.iter_orfs('in'):
+		for i, orf in enumerate(orfs):
+			print(i+1, orf.begin(), orf.end(), orf.start_codon(), sep='\t', end='\t')
+			for aa in list('ARNDCEQGHILKMFPSTWYV'):
+				print(orf.amino_acid_count(aa), end='\t')
+			print()
 	exit()
 	'''
 	'''
@@ -105,6 +120,10 @@ for id, dna in contigs.items():
 	if args.dump:
 		for edge in fz.get_edges():
 			print(edge)
+		sys.exit()
+	elif args.orfs:
+		for orf in contig_features.iter_orfs():
+			print(orf.left(), orf.right(), orf.stop, orf.length(), orf.rbs, orf.rbs_score, orf.pstop, orf.start_codon(), orf.weight, orf.good, sep='\t')
 		sys.exit()
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 

@@ -12,17 +12,10 @@ from .functions import *
 from score_rbs import ScoreXlationInit
 
 import numpy as np
-def aad(data, axis=None):
-        return np.mean(np.absolute(data - np.mean(data, axis)), axis)
-setattr(np, 'aad', aad)
 def mad(data, axis=None):
-        return np.median(np.absolute(data - np.mean(data, axis)), axis)
+	return np.median(np.absolute(data - np.mean(data, axis)), axis)
 setattr(np, 'mad', mad)
-def argmid(x):
-    for i, item in enumerate(x):
-        if item != min(x) and item != max(x):
-            return i
-setattr(np, 'argmid', argmid)
+
 
 class Features(list):
 	"""The class holding the orfs"""
@@ -38,7 +31,7 @@ class Features(list):
 
 		nucs = ['T', 'C', 'A', 'G']
 		codons = [a+b+c for a in nucs for b in nucs for c in nucs]
-		amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
+		amino_acids = 'FFLLSSSSYY#+CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
 		self.translate_codon = dict(zip(codons, amino_acids))
 
 	def score_orfs(self):
@@ -50,16 +43,11 @@ class Features(list):
 		self.classify_orfs()
 		for orfs in self.iter_orfs('in'):
 			for orf in orfs:
-				if(orf.start_codon() == 'ATG'):
-				#if(orf.good):
-					#n = int(orf.length()/10)
-					#for base in range(start+n, stop-36, 3):
+				#if(orf.start_codon() == 'ATG'):
+				if(orf.good):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
 							pos_min[min_frame] += 1
 							pos_max[max_frame] += 1
-					#print(orf.start, orf.stop)
-					#print(orf.min_frames)
-					#print(orf.max_frames)
 					break
 		# normalize to one
 		y = max(pos_min)
@@ -80,17 +68,6 @@ class Features(list):
 				orf.weight = orf.weight * Decimal(self.start_codons[orf.start_codon()])
 			orf.weight = orf.weight * orf.rbs_score
 			orf.weight = -orf.weight
-		'''
-		o = self.get_orf(55506,55002)
-		print(o.min_frames)
-		print(o.max_frames)
-		print(o.weight)
-		o = self.get_orf(55035,55350)
-		print(o.min_frames)
-		print(o.max_frames)
-		print(o.weight)
-		exit()
-		'''
 
 	def score_rbs(self, seq):
 		return Decimal(str(max(2,self.rbs_scorer.score_init_rbs(seq, 20)[0]))).ln()/Decimal(2).ln()
@@ -197,9 +174,7 @@ class Features(list):
 	def classify_orfs(self):
 		from sklearn.preprocessing import StandardScaler
 		from sklearn.cluster import KMeans
-		from sklearn.mixture import GaussianMixture
-		from sklearn.cluster import AgglomerativeClustering
-		from .kmeans import KMeans as KM
+		#from .kmeans import KMeans as KM
 
 		X = []
 		Y = []
@@ -208,31 +183,37 @@ class Features(list):
 			for orf in orfs:
 				counts = orf.amino_acid_entropies()
 				point = []
-				for aa in list('ARNDCEQGHILKMFPSTWYV'):
+				for aa in list('ARNDCEQGHILKMFPSTWYV#+*'):
 					point.append(counts[aa])
-				point.append( orf.length() / 3 - 1)
+				point.append( orf.length() )
 				X.append(point)
 				Y.append(orf)
 			uni += 1
 
 		X = StandardScaler().fit_transform(X)
 
-		#model = GaussianMixture(n_components=3, n_init=10, covariance_type='spherical', reg_covar=0.00001).fit(X)
-		n_clust = 2 if len(X)+uni<300 else (3 if len(X)+uni<1500 else 4)
-		labels = KMeans(n_clusters=n_clust, n_init=50).fit_predict(X)
-		#labels = model.predict(X)
-		#labels = AgglomerativeClustering(n_clusters=n_clust, linkage='ward').fit_predict(X)
-		#idx = np.argmin(model.covariances_)
-		X = X[:,:-1]
-		variances = [np.sum(np.mad(X[labels==i], axis=0)) for i in range(n_clust)]
-		idx = np.argmin(variances)
+		n_clust = 3 if uni<450 else 4
 
-		#l = [len(X[labels==i]) for i in range(n_clust)] ; print('len', l)
+		model = KMeans(n_clusters=n_clust, n_init=1000).fit(X)
+		labels = model.predict(X)
+
+		cluster = lambda : None
+		cluster.mad = float('+Inf')
+		cluster.minima = None
+		for i in range(n_clust):
+			mad = np.sum(np.mad(X[labels==i,:-1], axis=0))
+			unique_orfs = len({orf.stop:True for orf in np.array(Y)[labels==i]})
+			if mad < cluster.mad:
+				if unique_orfs / uni > 0.05 :
+					cluster.mad = mad
+					cluster.idx = i
+				else:
+					cluster.minima = i
+
 		for label, orf in zip(labels, Y):
-			if label == idx:
+			if label == cluster.idx or label == cluster.minima:
 				orf.good = True
-				#sys.stderr.write(orf.end() + "\n")
-				#print(orf.end())
+
 
 	def parse_contig(self, id, dna):
 		self.id = id

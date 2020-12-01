@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import getopt
@@ -45,52 +45,11 @@ for id, dna in contigs.items():
 	contig_features.score_orfs()
 
 
-	'''
-	end_start = dict()
-	with open("/home3/katelyn/projects/PHANOTATE_DATA/" + id + "/" + id + ".starts-ends") as f:
-		for line in f:
-			start, end = line.rstrip().split('\t')
-			end_start[end] = start
-
-	for orfs in contig_features.iter_orfs('in'):
-		for i, orf in enumerate(orfs):
-			if orf.end() in end_start and orf.begin() == end_start[orf.end()]:
-				print(id, orf.end(), i, len(contig_features.get_orfs(orf.stop)), sep='\t')
-	exit()
-	'''
-
 	# find other features
 	from phanotate_modules.trnas import tRNAs
 	for trna in tRNAs(contig_features.dna):
 		contig_features.add_feature( trna )
 
-	'''
-	print('#id:\t' + id)
-	for orfs in contig_features.iter_orfs('in'):
-		for i, orf in enumerate(orfs):
-			print(i+1, orf.begin(), orf.end(), orf.start_codon(), sep='\t', end='\t')
-			for aa in list('ARNDCEQGHILKMFPSTWYV'):
-				print(orf.amino_acid_count(aa), end='\t')
-			print()
-	exit()
-	'''
-	'''
-	scores = list()
-	for orf in contig_features.iter_orfs():
-			scores.append(orf.score_rbs())
-
-	from statistics import mean
-	m = mean(scores)
-
-	counts = {'ATG':0,'GTG':0,'TTG':0}
-	for orf in contig_features.iter_orfs():
-		if orf.score_rbs() > m:
-			counts[orf.start_codon()] += 1
-
-	gc = (contig_features.dna.count('G') + contig_features.dna.count('C')) / contig_features.contig_length()
-	print(id, gc, counts['ATG'], counts['GTG'], counts['TTG'], sep='\t')
-	exit()
-	'''
 	#-------------------------------Create the Graph-------------------------------------------#
 
 	fz.empty_graph()

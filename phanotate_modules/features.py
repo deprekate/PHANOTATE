@@ -40,11 +40,11 @@ class Features(list):
 
 		self.pos_min = pos_min
 		self.pos_max = pos_max
-		self.classify_orfs()
+		#self.classify_orfs()
 		for orfs in self.iter_orfs('in'):
 			for orf in orfs:
-				#if(orf.start_codon() == 'ATG'):
-				if(orf.good):
+				if(orf.start_codon() == 'ATG'):
+				#if(orf.good):
 					for min_frame,max_frame in zip(orf.min_frames[10:-10], orf.max_frames[10:-10]):
 							pos_min[min_frame] += 1
 							pos_max[max_frame] += 1

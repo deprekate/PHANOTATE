@@ -303,7 +303,7 @@ static struct PyModuleDef phanotate_connect = {
 	phanotate_connect_methods
 };
 // module initializer for python3
-PyMODINIT_FUNC PyInit_phanotate_connect(void)
+PyMODINIT_FUNC PyInit_connect(void)
 {
 	return PyModule_Create(&phanotate_connect);
 }
@@ -324,7 +324,7 @@ int main(int argc, char *argv[]){
 	}
 
 	/* Add a built-in module, before Py_Initialize */
-	PyImport_AppendInittab("phanotate_connect", PyInit_phanotate_connect);
+	PyImport_AppendInittab("phanotate_connect", PyInit_connect);
 
 	/* Pass argv[0] to the Python interpreter */
 	Py_SetProgramName(program);

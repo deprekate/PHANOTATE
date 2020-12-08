@@ -3,18 +3,15 @@ import os
 import sys
 import getopt
 
-#from subprocess import Popen, PIPE, STDOUT
-__requires__= 'fastpath==1.4'
-import pkg_resources
-pkg_resources.require("fastpath==1.4")
+sys.path.pop(0)
+
 import fastpathz as fz
-import phanotate_connect as pc
+import phanotate.connect as pc
 
-#from phanotate_modules import functions
-#from phanotate_modules.nodes import Node
-from phanotate_modules import file_handling
-from phanotate_modules.features import Features
+from phanotate import file_handling
+from phanotate.features import Features
 
+from phanotate.trnas import tRNAs
 
 #--------------------------------------------------------------------------------------------------#
 #                               ARGUMENTS                                                          #
@@ -46,7 +43,6 @@ for id, dna in contigs.items():
 
 
 	# find other features
-	from phanotate_modules.trnas import tRNAs
 	for trna in tRNAs(contig_features.dna):
 		contig_features.add_feature( trna )
 

@@ -3,12 +3,12 @@ import os
 from setuptools import setup, Extension, find_packages
 
 
-def phanotate_connect_extension():
+def connect_extension():
 	#os.environ["CC"] = "gcc"
 	#compile_args = ["-g -Wall -O2"]
 	link_args	= ["-lm"]
 
-	ext = Extension('phanotate_connect',
+	ext = Extension('phanotate.connect',
 				language='gcc',
 				#extra_compile_args=compile_args,
 				extra_link_args=link_args,
@@ -18,8 +18,7 @@ def phanotate_connect_extension():
 							 os.path.join(os.getcwd(), 'include'),
 				],
 				library_dirs = [os.getcwd(),],
-				sources = ['src/phanotate_connect.c'])
-				#sources = ['src/phanotate_connect.c', 'src/mini-gmp.c'])
+				sources = ['src/connect.c'])
 	return ext
 
 def readme():
@@ -50,9 +49,8 @@ def main():
 		],
 		python_requires='>3.5.2',
 		packages=find_packages(),
-		#py_modules=['phanotate'],
 		install_requires=['fastpath>=1.4'],
-		ext_modules = [phanotate_connect_extension()]
+		ext_modules = [connect_extension()]
 	)
 
 

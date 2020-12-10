@@ -9,6 +9,7 @@ __all__ = [
 			'file_handling',
 			'functions',
 			'gc_frame_plot',
+			'rbs_scoring',
 			'features',
 			'orf',
 			'trnas'

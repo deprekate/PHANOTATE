@@ -9,7 +9,8 @@ from decimal import Decimal
 from .gc_frame_plot import GCFramePlot
 from .orf import CDS
 from .functions import *
-from score_rbs import ScoreXlationInit
+from .rbs_scoring import RBSscorer
+#from score_rbs import ScoreXlationInit
 
 import numpy as np
 def mad(data, axis=None):
@@ -58,7 +59,8 @@ class Features(list):
 
 		for orf in self.iter_orfs():
 			orf.weight = Decimal(1)
-			orf.rbs_score = self.score_rbs(orf.rbs)
+			#orf.rbs_score = self.score_rbs(orf.rbs)
+			orf.rbs_score = self.rbs.weight(orf.rbs)
 			for min_frame,max_frame in zip(orf.min_frames, orf.max_frames):
 				orf.weight = orf.weight * ((orf.pnots**pos_min[min_frame])**pos_max[max_frame])
 
@@ -70,7 +72,8 @@ class Features(list):
 			orf.weight = -orf.weight
 
 	def score_rbs(self, seq):
-		return Decimal(str(max(2,self.rbs_scorer.score_init_rbs(seq, 20)[0]))).ln()/Decimal(2).ln()
+		score = self.rbs_scorer.score_init_rbs(seq, 20)[0]
+		return Decimal(str(max(2,score))).ln() / Decimal(2).ln()
 
 	def seq(self, a, b):
 			return self.dna[ a-1 : b ]
@@ -78,6 +81,8 @@ class Features(list):
 	def add_orf(self, start, stop, frame, seq, rbs):
 		""" Adds an orf to the factory"""
 		if len(seq) < self.min_orf_len: return
+
+		self.rbs.add(rbs)
 
 		o = CDS(start, stop, frame, self)
 
@@ -222,7 +227,8 @@ class Features(list):
 		self.pnots = 1 - self.pstop
 
 		self.gc_frame_plot = GCFramePlot(dna)
-		self.rbs_scorer = ScoreXlationInit()
+		#self.rbs_scorer = ScoreXlationInit()
+		self.rbs = RBSscorer(dna + rev_comp(dna))
 	
 
 		#background_rbs = [1.0] * 28

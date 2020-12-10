@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2020-12-08
+### Changed
+- Changed the ORF connecting routine from python code to CPython code.  This changes the ORF->ORF connection distance calculations slighly: in previous versions the distance were calculated from a weight that was an average of the two ORFs pstop values.  The new CPython code uses the same fixed pstop for all connections, which is calculated from the overall pstop of the entire DNA string
+- Added abilty to use user specified start and stop codons via command line arguements
+- Fixed the GCframePlot min_idx and max_idx functions to correctly return no frame if there is a tie
+
+
 ## [1.5.0] - 2020-07-09
 ### Fixed
 - An error in the fastpath package that caused the best path not to be found if edges had large enough weights. This is because of rounding errors for long doubles, and that C cannot distinguish between 1E50 and 1E50 + 1

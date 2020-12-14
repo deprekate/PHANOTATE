@@ -49,15 +49,14 @@ for id, dna in contigs.items():
 	#-------------------------------Create the Graph-------------------------------------------#
 
 	fz.empty_graph()
-
+	fz.scaling = 3
 	# write source and target edges to graph
 	fz.add_edge( contig_features.source_edge() )
 	fz.add_edge( contig_features.target_edge() )
 
 	# write edges to the graph
 	for orf in contig_features:
-		ret = fz.add_edge( orf.as_scaled_edge() )
-
+		ret = fz.add_edge( orf.as_edge() )
 
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():

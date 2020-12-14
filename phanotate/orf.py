@@ -23,11 +23,11 @@ class CDS:
 		#self.weight = self.weight()
 		self.good = False
 
-	def as_scaled_edge(self):
+	def as_edge(self):
 		if self.frame > 0:
-			return ("%s_start" % self.left(), "%s_stop" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_start" % self.left(), "%s_stop" % (self.right()-2), "%s" % self.weight)
 		else:
-			return ("%s_stop" % self.left(), "%s_start" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_stop" % self.left(), "%s_start" % (self.right()-2), "%s" % self.weight)
 
 	def gc_frame_plot(self):
 		gcfp = self.parent.gc_frame_plot

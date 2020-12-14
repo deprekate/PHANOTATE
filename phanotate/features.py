@@ -97,7 +97,7 @@ class Features(list):
 		self.add_feature(o)
 
 	def add_feature(self, feature):
-		self.feature_at[ feature.as_scaled_edge()[:2] ] = feature
+		self.feature_at[ feature.as_edge()[:2] ] = feature
 		self.append(feature)
 
 

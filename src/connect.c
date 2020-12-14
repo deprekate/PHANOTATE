@@ -254,7 +254,8 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 	int distance;
 	// loop over all pairs
 	for(s1=nodes_right; s1 != NULL; s1=s1->hh.next) {
-	for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
+			
+		for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			// this step is O(n2) so things have to be efficient
 			distance = s2->location - (s1->location+3);
 			if(-300 < distance && distance < 300){
@@ -266,10 +267,10 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 					if( (atoi(s1->value) < atoi(s2->key)) && (atoi(s2->value) > atoi(s1->key)) ){
 						if(strcmp(s1->type, s2->type) !=0 ){
 							// same direction
-							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(1000/pow(pnots, distance),'f',0,0,NULL) ));
+							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(1/pow(pnots, distance),'f',4,0,NULL) ));
 						}else{
 							// different direction
-							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(20000 + 1000/pow(pnots, distance),'f',0,0,NULL) ));
+							PyList_Append(new_edges, Py_BuildValue("sss", s1->key, s2->key, PyOS_double_to_string(20 + 1/pow(pnots, distance),'f',4,0,NULL) ));
 						}
 					}
 				}

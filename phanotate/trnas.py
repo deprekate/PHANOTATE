@@ -39,11 +39,11 @@ class tRNA:
 		self.weight = Decimal(-20)
 		self.frame  = 4 if start < stop else -4
 
-	def as_scaled_edge(self):
+	def as_edge(self):
 		if self.frame > 0:
-			return ("%s_begin" % self.left(), "%s_end" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_begin" % self.left(), "%s_end" % (self.right()-2), "%s" % self.weight)
 		else:
-			return ("%s_end" % self.left(), "%s_begin" % (self.right()-2), "%s" % (self.weight*1000))
+			return ("%s_end" % self.left(), "%s_begin" % (self.right()-2), "%s" % self.weight)
 
 	def left(self):
 		if self.frame > 0:

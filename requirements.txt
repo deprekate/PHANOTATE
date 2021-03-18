@@ -1,0 +1,13 @@
+fastpath
+gzip
+itertools
+json
+jupyter
+matplotlib
+numpy
+pandas
+scipy
+seaborn
+statsmodels
+tempfile
+textwrap

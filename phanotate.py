@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 import getopt
 
 #from subprocess import Popen, PIPE, STDOUT
-import fastpath as fp
+import fastpathz as fz
 
 from phanotate_modules import file_handling
 from phanotate_modules import functions
@@ -45,14 +45,15 @@ for id, seq in my_contigs.items():
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(len(seq)+1) + ")"
 	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
+	fz.empty_graph()
 	for e in my_graph.iteredges():
-		ret = fp.add_edge(str(e))
+		if args.dump: print(e)
+		ret = fz.add_edge(str(e))
 
-	shortest_path = fp.get_path(source=source, target=target)
+	if args.dump: sys.exit()
 
-	if args.dump:
-		[sys.stdout.write(repr(e.source) + "\t" + repr(e.target) + "\t" + str(e.weight*100000) + "\n") for e in my_graph.iteredges()]
-		sys.exit()
+	shortest_path = fz.get_path(source=source, target=target)
+
 
 	
 	#-------------------------------Write Output ----------------------------------------------#

@@ -3,6 +3,7 @@ import tempfile
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
 
+
 class tRNAs(list):
 	def __init__(self, dna):
 		#self.__dict__.update(kwargs)
@@ -18,8 +19,7 @@ class tRNAs(list):
 			output = Popen(["tRNAscan-SE", "-B", "-q", "--brief", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
 		except:
 			sys.stderr.write("Warning: tRNAscan not found, proceding without tRNA masking.\n")
-			return []
-
+			output = b""
 		# Iterate over the trnas
 		for line in output.decode().splitlines():
 			# Add in trna
@@ -28,7 +28,6 @@ class tRNAs(list):
 				self.append(tRNA(start, stop, type_))
 			else:
 				self.append(tRNA(start, stop, type_))
-
 
 
 class tRNA: 

@@ -13,6 +13,7 @@ from phanotate.features import Features
 
 from phanotate.trnas import tRNAs
 
+
 #--------------------------------------------------------------------------------------------------#
 #                               ARGUMENTS                                                          #
 #--------------------------------------------------------------------------------------------------#
@@ -31,7 +32,6 @@ if not contigs:
 	sys.stdout.write("Error: no sequences found in infile\n")
 	sys.exit()
 
-print("Input", time.time() - start)
 
 #--------------------------------------------------------------------------------------------------#
 #                               MAIN ROUTINE                                                       #
@@ -42,12 +42,9 @@ for id, dna in contigs.items():
 	#-------------------------------Find the ORFs----------------------------------------------#
 
 	contig_features.parse_contig(id, dna)
-	print("Input", time.time() - start)
 
 	start = time.time()
 	contig_features.score_orfs()
-	print("Score", time.time() - start)
-
 
 	# find other features
 	for trna in tRNAs(contig_features.dna):
@@ -78,7 +75,6 @@ for id, dna in contigs.items():
 	# write connections to the graph
 	for edge in pc.get_connections(pnots=contig_features.pnots):
 		ret = fz.add_edge( edge )
-	print("Connect", time.time() - start)
 
 	if args.dump:
 		for edge in fz.get_edges():

@@ -24,8 +24,6 @@ args = file_handling.get_args()
 #                               FILE INPUT                                                         #
 #--------------------------------------------------------------------------------------------------#
 
-import time
-start = time.time()
 base_trans = str.maketrans('SBVDEFHIJKLMNOPQRUWXYZ','GGGAAAAAAAAAAAAAAAAAAA')
 contigs = file_handling.read_fasta(args.infile, base_trans)
 if not contigs:
@@ -88,12 +86,10 @@ for id, dna in contigs.items():
 
 	start = time.time()
 	shortest_path = fz.get_path(source= contig_features.source_node(), target= contig_features.target_node())[1:-1]
-	print("Bellman", time.time() - start)
 
 	#-------------------------------Write Output ----------------------------------------------#
 	start = time.time()
 	file_handling.write_output(contig_features, shortest_path)
-	print("Output", time.time() - start)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

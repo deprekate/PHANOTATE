@@ -35,13 +35,11 @@ if not contigs:
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
 for id, dna in contigs.items():
-	start = time.time()
 	contig_features = Features(**vars(args))
 	#-------------------------------Find the ORFs----------------------------------------------#
 
 	contig_features.parse_contig(id, dna)
 
-	start = time.time()
 	contig_features.score_orfs()
 
 	# find other features
@@ -60,7 +58,6 @@ for id, dna in contigs.items():
 	for orf in contig_features:
 		ret = fz.add_edge( orf.as_edge() )
 
-	start = time.time()
 	# write edges to pconnect to get interconnections
 	for edge in fz.get_edges():
 		ret = pc.add_edge( edge )
@@ -84,11 +81,9 @@ for id, dna in contigs.items():
 		sys.exit()
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 
-	start = time.time()
 	shortest_path = fz.get_path(source= contig_features.source_node(), target= contig_features.target_node())[1:-1]
 
 	#-------------------------------Write Output ----------------------------------------------#
-	start = time.time()
 	file_handling.write_output(contig_features, shortest_path)
 
 #--------------------------------------------------------------------------------------------------#

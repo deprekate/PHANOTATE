@@ -123,7 +123,7 @@ def write_genbank(contig_orfs, shortest_path):
 	for left, right in pairwise(shortest_path):
 		feature = contig_orfs.get_feature(left, right)
 		if not feature:
-			print(left,right)
+			print(left,right, file=sys.stderr)
 			continue
 		outfile.write('     ' + type(feature).__name__.ljust(16))
 		if feature.frame > 0:
@@ -153,6 +153,10 @@ def write_fasta(contig_orfs, shortest_path):
 	outfile = contig_orfs.outfile
 	for left, right in pairwise(shortest_path):
 		feature = contig_orfs.get_feature(left, right)
+
+		if not feature:
+			print(left,right, file=sys.stderr)
+			continue
 
 		if(feature.type == 'CDS'):
 			#outfile.write('\t'.join(map(str, [feature.begin(), feature.end(), feature.direction(), contig_orfs.id, feature.weight, '\n'] )))

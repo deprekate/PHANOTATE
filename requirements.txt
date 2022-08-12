@@ -1,0 +1,8 @@
+fastpath
+jupyter
+matplotlib
+numpy
+pandas
+scipy
+seaborn
+statsmodels

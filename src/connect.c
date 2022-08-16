@@ -165,6 +165,9 @@ struct not_gaps {
 };
 struct not_gaps *iscoding = NULL;	        /* important! initialize to NULL */
 
+int max_pos = 0;
+
+
 void add_coding(int loc) {
 	struct not_gaps *s;
 
@@ -178,7 +181,30 @@ void add_coding(int loc) {
 
 // dont forget to empty
 
-int max_pos = 0;
+void _empty() {
+	struct my_struct *current, *tmp;
+	struct not_gaps *curr, *t;
+
+	HASH_ITER(hh, nodes_left, current, tmp) {
+		HASH_DEL(nodes_left, current);  /* delete; users advances to next */
+		free(current);             /* optional- if you want to free  */
+	}
+	HASH_ITER(hh, nodes_right, current, tmp) {
+		HASH_DEL(nodes_right, current);  /* delete; users advances to next */
+		free(current);             /* optional- if you want to free  */
+	}
+	HASH_ITER(hh, iscoding, curr, t) {
+		HASH_DEL(iscoding, curr);  /* delete; users advances to next */
+		free(curr);             /* optional- if you want to free  */
+	}
+	max_pos = 0;
+
+}
+static PyObject* empty (){
+	_empty();
+	Py_RETURN_NONE;
+}
+
 
 static PyObject* add_edge (PyObject* self, PyObject* args){
 	char *src, *dst, *wgt;
@@ -292,6 +318,7 @@ static PyMethodDef phanotate_connect_methods[] = {
 	{ "get_connections", (PyCFunction) get_connections, METH_VARARGS | METH_KEYWORDS, "Returns the edges of connections orfs" },
 	{ "get_gaps",        (PyCFunction) get_gaps,        METH_VARARGS | METH_KEYWORDS, "Returns the gaps as edges" },
 	{ "add_edge",        (PyCFunction) add_edge,        METH_VARARGS | METH_KEYWORDS, "Adds an edge to the graph" },
+	{ "empty",           (PyCFunction) empty,           METH_VARARGS | METH_KEYWORDS, "Empties out the data" },
 	{ NULL, NULL, 0, NULL }
 };
 //#ifdef PY3K

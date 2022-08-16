@@ -49,6 +49,7 @@ def get_args():
 	parser.add_argument('-V', '--version', action='version', version=__version__)
 	parser.add_argument('-d', '--dump', action="store_true")
 	parser.add_argument('-r', '--orfs', action="store_true")
+	parser.add_argument('-c', '--check', action="store_true")
 
 	args = parser.parse_args()
 

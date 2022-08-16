@@ -7,6 +7,7 @@ sys.path.pop(0)
 
 import fastpathz as fz
 import phanotate.connect as pc
+sys.path.pop(0)
 
 from phanotate import file_handling
 from phanotate.features import Features

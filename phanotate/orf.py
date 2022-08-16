@@ -23,6 +23,11 @@ class CDS:
 		#self.weight = self.weight()
 		self.good = False
 
+	def strand(self):
+		strand = +1 if self.frame > 0 else -1
+		return strand
+		
+
 	def as_edge(self):
 		if self.frame > 0:
 			return ("%s_start" % self.left(), "%s_stop" % (self.right()-2), "%s" % self.weight)

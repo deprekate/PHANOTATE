@@ -41,7 +41,7 @@ if not contigs:
 #--------------------------------------------------------------------------------------------------#
 
 baseline = None
-for stops in ['TAA,TAG,TGA', 'TAA,TAG', 'TAA,TGA', 'TAG,TGA']:
+for notstop,stops in zip([None, 'TGA','TAG','TAA'],['TAA,TAG,TGA', 'TAA,TAG', 'TAA,TGA', 'TAG,TGA']):
 	args.stop_codons = stops
 	for id, dna in contigs.items():
 		locus = Locus(id, dna)
@@ -94,8 +94,8 @@ for stops in ['TAA,TAG,TGA', 'TAA,TAG', 'TAA,TGA', 'TAG,TGA']:
 
 		if not baseline:
 			baseline = locus.gene_coverage()
-		elif locus.gene_coverage() / baseline > 1.2:
-			print('Stop codon readthrough suspected:', stops, locus.gene_coverage(), baseline)
+		elif locus.gene_coverage() / baseline > 1.15:
+			print('Stop codon readthrough suspected for', notstop, locus.gene_coverage(), 'vs', baseline)
 
 
 #--------------------------------------------------------------------------------------------------#

@@ -6,11 +6,10 @@ import getopt
 sys.path.pop(0)
 
 import fastpathz as fz
-import phanotate.connect as pc
 
+import phanotate.connect as pc
 from phanotate import file_handling
 from phanotate.features import Features
-
 from phanotate.trnas import tRNAs
 
 

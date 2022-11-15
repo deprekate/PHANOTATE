@@ -284,7 +284,7 @@ static PyObject* get_connections (PyObject* self, PyObject* args, PyObject *kwar
 		for(s2=nodes_left; s2 != NULL; s2=s2->hh.next) {
 			// this step is O(n2) so things have to be efficient
 			distance = s2->location - (s1->location+3);
-			if(-300 < distance && distance < 300){
+			if(-500 < distance && distance < 500){
 				distance = (distance >= 0) ? distance/3 : -distance;
 				// close by
 				if(s1->key != s2->value && s1->value != s2->key){

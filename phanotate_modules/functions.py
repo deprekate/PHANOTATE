@@ -256,6 +256,8 @@ def get_orfs(dna):
 		orf.weight_rbs = training_rbs[orf.rbs_score]/background_rbs[orf.rbs_score]
 
 	#-------------------------------Score ORFs based on GC frame plot----------------------------------#
+
+	x = []
 	pos_max = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 	pos_min = [Decimal(1), Decimal(1), Decimal(1), Decimal(1)]
 	for orfs in my_orfs.iter_in():
@@ -457,18 +459,42 @@ def add_trnas(my_orfs, G):
 	f.write(my_orfs.seq)
 	f.seek(0)
 
-	try:
-		output = Popen(["tRNAscan-SE", "-B", "-q", "--brief", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
-	except:
-		sys.stderr.write("Warning: tRNAscan not found, proceding without tRNA masking.\n")
-		return []
-
+	trnas = list()
+	seen = list()
+	output1 = output2 = None
 	# Iterate over the trnas
-	for line in output.decode().splitlines():
+	try:
+		# no support for tmRNA yet
+		#output2 = Popen(["aragorn", "-m", "-t", "-w", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
+		output2 = Popen(["aragorn", "-t", "-w", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
+		for line in output2.decode().splitlines():
+			if not line.startswith('>') and not line.endswith('found'):
+				column = line.split()
+				pair = eval(column[2].replace('c',''))
+				if 'c' not in column[2]:
+					trnas.append(pair)
+				else:
+					trnas.append(pair[::-1])
+				seen.extend(range(*pair))
+	except:
+		pass
+	try:
+		output1 = Popen(["tRNAscan-SE", "-B", "-q", "--brief", f.name], stdout=PIPE, stdin=PIPE, stderr=PIPE).stdout.read()
+		for line in output1.decode().splitlines():
+			column = line.split('\t')
+			a,b = map(int, column[2:4])
+			if a < b and not set(seen) & set(list(range(a,b))):
+				trnas.append([a,b])
+			elif a > b and not set(seen) & set(list(range(b,a))):
+				trnas.append([a,b])
+	except:
+		pass
+	if output1 is None and output2 is None:
+		sys.stderr.write("Warning: tRNAscan or Aragorn were not found, proceding without tRNA masking.\n")
+		return
+
+	for start,stop in trnas:
 		# Add in trna
-		column = line.split('\t')
-		start = int(column[2])
-		stop = int(column[3])
 		if(start < stop):
 			source = Node('tRNA', 'start', 4, start)
 			target = Node('tRNA', 'stop', 4, stop-2)

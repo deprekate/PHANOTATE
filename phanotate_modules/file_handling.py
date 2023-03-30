@@ -8,6 +8,7 @@ from math import log
 
 from phanotate_modules.edges import Edge
 from phanotate_modules.nodes import Node
+from phanotate_modules.functions import rev_comp
 
 
 import pkg_resources
@@ -90,15 +91,14 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			weight = my_graph.weight(Edge(left,right,0))
 			if(left.gene == 'tRNA'):
 				continue
-			if(left.position == 0 and right.position == last_node.position):
-				left.position = abs(left.frame)
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				left.position = '<' + str(left.position)
-			elif(left.position == 0):
-				left.position = '<' + str(((right.position+2)%3)+1)
-				right.position += 2
-			elif(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			if(left.frame > 0):
+				orf = my_orfs.get_orf(left.position, right.position)
+			else:
+				orf = my_orfs.get_orf(right.position, left.position)
+			if(left.frame > 0 and not orf.has_start()) or (left.frame < 0 and not orf.has_stop()):
+				left.position = '<1'
+			if(left.frame > 0 and not orf.has_stop()) or (left.frame < 0 and not orf.has_start()):
+				right.position = '>' + str(last_node.position-1)
 			else:
 				right.position += 2
 			if(left.type == 'start' and right.type == 'stop'):
@@ -132,10 +132,10 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			else:
 				orf = my_orfs.get_orf(right.position, left.position)
 			#properly display the orf
-			if(not orf.has_start() and not orf.has_stop()):
-				left.position = '<' + str(((right.position+2)%3)+1)
-			if(right.position == last_node.position):
-				right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
+			if(left.frame > 0 and not orf.has_start()) or (left.frame < 0 and not orf.has_stop()):
+				left.position = '<1'
+			if(left.frame > 0 and not orf.has_stop()) or (left.frame < 0 and not orf.has_start()):
+				right.position = '>' + str(last_node.position-1)
 			else:
 				right.position += 2
 			outfile.write('     ' + left.gene.ljust(16))
@@ -166,32 +166,36 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 		for source, target in pairwise(my_path):
 			left = eval(source)
 			right = eval(target)
-			if(left.gene == 'tRNA'):
+			if(left.gene != 'CDS'):
 				continue
+			weight = my_graph.weight(Edge(left,right,0))
 			if(left.frame > 0):
 				orf = my_orfs.get_orf(left.position, right.position)
 			else:
 				orf = my_orfs.get_orf(right.position, left.position)
-			if(left.gene == 'CDS'):
-				weight = my_graph.weight(Edge(left,right,0))
-				if(left.position == 0 and right.position == last_node.position):
-					left.position = abs(left.frame)
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-					left.position = '<' + str(left.position)
-				elif(left.position == 0):
-					left.position = '<' + str(((right.position+2)%3)+1)
-					right.position += 2
-				elif(right.position == last_node.position):
-					right.position = '>' + str(left.position+3*int((right.position-left.position)/3)-1)
-				else:
-					right.position += 2
-				if(left.type == 'start' and right.type == 'stop'):
-					#outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
-					outfile.write(id + "." + str(right.position) + " [START=" + str(left.position) + "] [SCORE=" + str(weight) + "]\n")
-				elif(left.type == 'stop' and right.type == 'start'):
-					#outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
-					outfile.write(id + "." + str(left.position) + " [START=" + str(right.position) + "] [SCORE=" + str(weight) + "]\n")
-				outfile.write(orf.seq)
-				outfile.write("\n")
+			if(not orf.has_start() and not orf.has_stop()):
+				pass
+			elif(left.frame > 0 and not orf.has_start()):
+				orf.seq = my_orfs.seq[:left.position-1] + orf.seq
+				left.position = '<1'
+			elif(left.frame < 0 and not orf.has_stop()):
+				orf.seq = orf.seq + rev_comp(my_orfs.seq[:left.position-1])
+				left.position = '<1'
+			elif(left.frame > 0 and not orf.has_stop()):
+				orf.seq += my_orfs.seq[right.position+2:]
+				right.position = '>' + str(last_node.position-1)
+			elif(left.frame < 0 and not orf.has_start()):
+				orf.seq = rev_comp(my_orfs.seq[right.position+2:]) + orf.seq
+				right.position = '>' + str(last_node.position-1)
+			else:
+				right.position += 2
+			if(left.type == 'start' and right.type == 'stop'):
+				#outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				outfile.write(id + "." + str(right.position) + " [START=" + str(left.position) + "] [SCORE=" + str(weight) + "]\n")
+			elif(left.type == 'stop' and right.type == 'start'):
+				#outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				outfile.write(id + "." + str(left.position) + " [START=" + str(right.position) + "] [SCORE=" + str(weight) + "]\n")
+			outfile.write(orf.seq)
+			outfile.write("\n")
 
 

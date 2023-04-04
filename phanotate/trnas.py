@@ -35,7 +35,7 @@ class tRNA:
 		self.start  = int(start)
 		self.stop    = int(stop)
 		self.type   = type_
-		self.weight = Decimal(-20)
+		self.weight = Decimal(0)
 		self.frame  = 4 if start < stop else -4
 
 	def as_edge(self):

@@ -25,7 +25,7 @@ PHANOTATE Example
 
 Run on included sample data:
 ```sh
-./phanotate.py tests/NC_001416.1.fasta 
+phanotate.py tests/NC_001416.1.fasta 
 ```
 Output is the predicted ORFs, and should look like
 ```sh

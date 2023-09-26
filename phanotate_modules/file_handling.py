@@ -46,7 +46,7 @@ def get_args(File):
 
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
 	#parser.add_argument('--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
-	parser.add_argument('-f', '--format', help='Output the features in the specified format [tabular]', type=str, default='tabular', choices=File.formats)
+	parser.add_argument('-f', '--format', help='Output the features in the specified format [tabular]', type=str, default='tabular', choices=File.formats[:7])
 	parser.add_argument('-d', '--dump', action="store_true")
 	parser.add_argument('-V', '--version', action='version', version=__version__)
 

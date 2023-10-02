@@ -38,14 +38,15 @@ def is_valid_file(x):
 		raise argparse.ArgumentTypeError("{0} does not exist".format(x))
 	return x
 
-def get_args():
+def get_args(File):
 	usage = 'phanotate.py [-opt1, [-opt2, ...]] infile'
 	parser = argparse.ArgumentParser(description='PHANOTATE: A phage genome annotator', formatter_class=RawTextHelpFormatter, usage=usage)
 
 	parser.add_argument('infile', type=is_valid_file, help='input file in fasta format')
 
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
-	parser.add_argument('-f', '--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
+	#parser.add_argument('--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
+	parser.add_argument('-f', '--format', help='Output the features in the specified format [tabular]', type=str, default='tabular', choices=File.formats[:7])
 	parser.add_argument('-d', '--dump', action="store_true")
 	parser.add_argument('-V', '--version', action='version', version=__version__)
 
@@ -65,7 +66,7 @@ def read_fasta(filepath):
 				name = line.split()[0]
 				seq = ''
 			else:
-				seq += line.replace("\n", "").upper()
+				seq += line.replace("\n", "").lower()
 		my_contigs[name] = seq
 
 	if '' in my_contigs: del my_contigs['']
@@ -80,10 +81,10 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 	except:
 		sys.stdout.write("Error running fastpathz: " + output + '\n')
 	if(not my_path):
-		outfile.write("#id:\t" + str(id[1:]) + " NO ORFS FOUND\n")
+		outfile.write("#id:\t" + str(id) + " NO ORFS FOUND\n")
 	elif(outfmt == 'tabular'):
 		last_node = eval(my_path[-1])
-		outfile.write("#id:\t" + str(id[1:]) + "\n")
+		outfile.write("#id:\t" + str(id) + "\n")
 		outfile.write("#START\tSTOP\tFRAME\tCONTIG\tSCORE\n")
 		for source, target in pairwise(my_path):
 			left = eval(source)
@@ -102,16 +103,16 @@ def write_output(id, args, my_path, my_graph, my_orfs):
 			else:
 				right.position += 2
 			if(left.type == 'start' and right.type == 'stop'):
-				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				outfile.write(str(left.position) + '\t' + str(right.position) + '\t+\t' + id + '\t' + str(weight) + '\t\n')
 			elif(left.type == 'stop' and right.type == 'start'):
-				outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id[1:] + '\t' + str(weight) + '\t\n')
+				outfile.write(str(right.position) + '\t' + str(left.position) + '\t-\t' + id + '\t' + str(weight) + '\t\n')
 
 	elif(outfmt == 'genbank'):
 		last_node = eval(my_path[-1])
-		outfile.write('LOCUS       ' + id[1:])
+		outfile.write('LOCUS       ' + id)
 		outfile.write(str(last_node.position-1).rjust(10))
 		outfile.write(' bp    DNA             PHG\n')
-		outfile.write('DEFINITION  ' + id[1:] + '\n')
+		outfile.write('DEFINITION  ' + id + '\n')
 		outfile.write('FEATURES             Location/Qualifiers\n')
 		outfile.write('     source          1..' + str(last_node.position-1) + '\n')
 		for source, target in pairwise(my_path):

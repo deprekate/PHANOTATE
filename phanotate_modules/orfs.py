@@ -12,8 +12,8 @@ class Orfs(dict):
 		self.contig_length = 0
 		self.seq = ''
 		self.other_end = dict()
-		self.start_codons = ['ATG', 'GTG', 'TTG']
-		self.stop_codons = ['TAA', 'TGA', 'TAG']
+		self.start_codons = ['atg', 'gtg', 'ttg']
+		self.stop_codons = ['taa', 'tga', 'tag']
 
 	def add_orf(self, start, stop, length, frame, seq, rbs, rbs_score):
 		o = Orf(start, stop, length, frame, seq, rbs, rbs_score, self.start_codons, self.stop_codons)
@@ -87,9 +87,9 @@ class Orf:
 		self.gcfp_maxs = 1
 		self.start_codons = start_codons
 		self.stop_codons = stop_codons
-		self.start_weight = {'ATG':Decimal('1.00'), 'CAT':Decimal('1.00'),
-				     'GTG':Decimal('0.12'), 'CAC':Decimal('0.12'),
-				     'TTG':Decimal('0.05'), 'CAA':Decimal('0.05')}
+		self.start_weight = {'atg':Decimal('1.00'), 'cat':Decimal('1.00'),
+				     'gtg':Decimal('0.12'), 'cac':Decimal('0.12'),
+				     'ttg':Decimal('0.05'), 'caa':Decimal('0.05')}
 		self.aa = dict()
 		self.med = dict()
 
@@ -97,7 +97,7 @@ class Orf:
 
 	def parse_seq(self):
 		#calculate the amino acid frequency
-		nucs = ['T', 'C', 'A', 'G']
+		nucs = ['t', 'c', 'a', 'g']
 		codons = [a+b+c for a in nucs for b in nucs for c in nucs]
 		amino_acids = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG'
 		codon_table = dict(zip(codons, amino_acids))
@@ -141,36 +141,36 @@ class Orf:
 
 	def pp_stop(self):
 		frequency = [None]*4
-		frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0}
-		frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0}
-		frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0}
+		frequency[1] = {'a':0, 't':0, 'c':0, 'g':0}
+		frequency[2] = {'a':0, 't':0, 'c':0, 'g':0}
+		frequency[3] = {'a':0, 't':0, 'c':0, 'g':0}
 		count = [Decimal(0)]*4
 		states = itertools.cycle([1, 2, 3])
 		frame = states.next()
 		for _ in range(0,3-abs(self.stop-self.start)%3):
 			frame = states.next()
 		for base in self.seq:
-			if(base not in ['A', 'C', 'T', 'G']):
+			if(base not in ['a', 'c', 't', 'g']):
 				continue
 			frequency[frame][base] += 1
 			count[frame] +=1
 			frame = states.next()
-		Ptaa = (frequency[1]['T']/count[1]) * (frequency[2]['A']/count[2]) * (frequency[3]['A']/count[3])
-		Ptga = (frequency[1]['T']/count[1]) * (frequency[2]['G']/count[2]) * (frequency[3]['A']/count[3])
-		Ptag = (frequency[1]['T']/count[1]) * (frequency[2]['A']/count[2]) * (frequency[3]['G']/count[3])
+		Ptaa = (frequency[1]['t']/count[1]) * (frequency[2]['a']/count[2]) * (frequency[3]['a']/count[3])
+		Ptga = (frequency[1]['t']/count[1]) * (frequency[2]['g']/count[2]) * (frequency[3]['a']/count[3])
+		Ptag = (frequency[1]['t']/count[1]) * (frequency[2]['a']/count[2]) * (frequency[3]['g']/count[3])
 		return Ptaa+Ptga+Ptag
 
 	def p_stop(self):
-		frequency = {'A':0, 'T':0, 'C':0, 'G':0}
+		frequency = {'a':0, 't':0, 'c':0, 'g':0}
 		for base in self.seq:
-			if(base not in ['A', 'C', 'T', 'G']):
+			if(base not in ['a', 'c', 't', 'g']):
 				continue
 			frequency[base] += 1
 		length = Decimal(len(self.seq))
-		Pa = frequency['A']/length
-		Pt = frequency['T']/length
-		Pg = frequency['G']/length
-		Pc = frequency['C']/length
+		Pa = frequency['a']/length
+		Pt = frequency['t']/length
+		Pg = frequency['g']/length
+		Pc = frequency['c']/length
 		return (Pt*Pa*Pa + Pt*Pg*Pa + Pt*Pa*Pg)
 
 	def __repr__(self):

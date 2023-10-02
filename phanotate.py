@@ -4,49 +4,57 @@ import sys
 import getopt
 
 #from subprocess import Popen, PIPE, STDOUT
+sys.path.pop(0)
+from phanotate_modules.file import File
 import fastpathz as fz
 
 from phanotate_modules import file_handling
 from phanotate_modules import functions
 from phanotate_modules.nodes import Node
+from phanotate_modules.edges import Edge
+from phanotate_modules.file_handling import pairwise
+
+sign = lambda x: (1, -1)[x<0]
 
 
 #--------------------------------------------------------------------------------------------------#
 #                               ARGUMENTS                                                          #
 #--------------------------------------------------------------------------------------------------#
 
-args = file_handling.get_args()
-
+args = file_handling.get_args(File)
+if args.format == 'fasta':
+	args.format = 'fna'
 #--------------------------------------------------------------------------------------------------#
 #                               FILE INPUT                                                         #
 #--------------------------------------------------------------------------------------------------#
 
-my_contigs = file_handling.read_fasta(args.infile);
-if not my_contigs:
+base_trans = str.maketrans('sbvdefhijklmnopqruwxyz','gggaaaaaaaaaaaaaaaaaaa')
+genbank = File(args.infile);
+if not genbank.seq():
 	sys.stdout.write("Error: no sequences found in infile\n")
 	sys.exit()
 
 #--------------------------------------------------------------------------------------------------#
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
-for id, seq in my_contigs.items():
-
+for locus in genbank:
+	locus.start_codons = ['atg','gtg','ttg']
+	locus.stop_codons  = ['taa','tga','tag']
 	#-------------------------------Find the ORFs----------------------------------------------#
-	my_orfs = functions.get_orfs(seq)
-
+	orfs = functions.get_orfs(locus.seq().lower())
 
 
 	#-------------------------------Create the Graph-------------------------------------------#
-	my_graph = functions.get_graph(my_orfs)
+	graph = functions.get_graph(orfs)
 
 
 
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"
-	target = "Node('target','target',0," + str(len(seq)+1) + ")"
+	target = "Node('target','target',0," + str(locus.length()+1) + ")"
 	# Write edges to the fastpath program, and multiply the weight to not lose decimal places
 	fz.empty_graph()
-	for e in my_graph.iteredges():
+	for e in graph.iteredges():
 		if args.dump: print(e)
 		ret = fz.add_edge(str(e))
 
@@ -57,7 +65,15 @@ for id, seq in my_contigs.items():
 
 	
 	#-------------------------------Write Output ----------------------------------------------#
-	file_handling.write_output(id, args, shortest_path, my_graph, my_orfs)
+	#file_handling.write_output(locus.name(), args, shortest_path, graph, orfs)
+	shortest_path = shortest_path[1:]
+	for source, target in pairwise(shortest_path):
+		left,right = eval(source) , eval(target)
+		weight = graph.weight(Edge(left,right,0))
+		pairs = [[left.position , right.position]]
+		feature = locus.add_feature(left.gene, sign(left.frame), pairs, {'note':['score:%E' % weight]})
+		feature.weight = '%E' % weight
+	locus.write(args)
 
 #--------------------------------------------------------------------------------------------------#
 #                               END                                                                #

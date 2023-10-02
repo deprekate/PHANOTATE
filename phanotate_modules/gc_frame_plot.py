@@ -35,9 +35,9 @@ class GCframe:
 		self.bases[2] = deque(['-']*self.window)
 		self.bases[3] = deque(['-']*self.window)
 		self.frequency = [None]*4
-		self.frequency[1] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
-		self.frequency[2] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
-		self.frequency[3] = {'A':0, 'T':0, 'C':0, 'G':0, '-':0}
+		self.frequency[1] = {'a':0, 't':0, 'c':0, 'g':0, '-':0}
+		self.frequency[2] = {'a':0, 't':0, 'c':0, 'g':0, '-':0}
+		self.frequency[3] = {'a':0, 't':0, 'c':0, 'g':0, '-':0}
 		self.total = [deque([]),deque([]),deque([]),deque([])]
 		self.freq =[]
 
@@ -47,7 +47,7 @@ class GCframe:
 		self.frequency[frame][base] += 1
 		item = self.bases[frame].popleft()
 		self.frequency[frame][item] -= 1
-		self.total[frame].append(self.frequency[frame]['G'] + self.frequency[frame]['C'])
+		self.total[frame].append(self.frequency[frame]['g'] + self.frequency[frame]['c'])
 
 
 	def _close(self):
@@ -56,7 +56,7 @@ class GCframe:
 				self.total[frame].popleft()
 				item = self.bases[frame].popleft()
 				self.frequency[frame][item] -= 1
-				self.total[frame].append(self.frequency[frame]['G'] + self.frequency[frame]['C'])
+				self.total[frame].append(self.frequency[frame]['g'] + self.frequency[frame]['c'])
 
 	def get(self):
 		self._close()

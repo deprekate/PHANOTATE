@@ -7,7 +7,7 @@ class Orfs(dict):
 	"""The class holding the orfs"""
 	def __init__(self, locus):
 		self.pstop = 0
-		self.min_orf_len = 90
+		self.min_orf_len = locus.min_orf_len
 		self.contig_length = 0
 		self.seq = ''
 		self.other_end = dict()

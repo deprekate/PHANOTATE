@@ -41,6 +41,7 @@ for locus in genbank:
 	#-------------------------------Find the ORFs----------------------------------------------#
 	locus.start_codons = args.start_codons
 	locus.stop_codons = args.stop_codons
+	locus.min_orf_len = args.min_orf_len
 	orfs = functions.get_orfs(locus)
 
 

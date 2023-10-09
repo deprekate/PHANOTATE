@@ -30,10 +30,10 @@ class Locus(Locus, feature=Feature):
 		pairs[-1][-1] += 2
 		pairs = [map(str,pair) for pair in pairs]
 		feature = super(Locus,self).add_feature(key, strand, pairs, tags)
-		if(strand > 0 and not feature.has_start()) or (strand < 0 and not feature.has_stop()):
-			feature.set_left('<1')
-		if(strand > 0 and not feature.has_stop()) or (strand < 0 and not feature.has_start()):
-			feature.set_right('>' + str(self.length()))	
+		#if(strand > 0 and not feature.has_start()) or (strand < 0 and not feature.has_stop()):
+		#	feature.set_left('<1')
+		#if(strand > 0 and not feature.has_stop()) or (strand < 0 and not feature.has_start()):
+		#	feature.set_right('>' + str(self.length()))	
 		return feature
 
 	def tabular(self, outfile=sys.stdout):

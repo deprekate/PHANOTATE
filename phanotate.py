@@ -48,7 +48,6 @@ for locus in genbank:
 	graph = functions.get_graph(orfs)
 
 
-
 	#-------------------------------Run Bellman-Ford-------------------------------------------#
 	source = "Node('source','source',0,0)"
 	target = "Node('target','target',0," + str(locus.length()+1) + ")"

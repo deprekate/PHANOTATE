@@ -51,7 +51,7 @@ def main():
 		packages=find_packages(),
 		#py_modules=['phanotate'],
 		install_requires=['fastpath>=1.3', 'genbank'],
-		ext_modules = [phanotate_connect_extension()]
+		#ext_modules = [phanotate_connect_extension()]
 	)
 
 

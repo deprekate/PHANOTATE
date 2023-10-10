@@ -15,7 +15,7 @@ or
 
 ```sh
  git clone https://github.com/deprekate/PHANOTATE.git
- pip3 install PHANOTATE
+ pip3 install PHANOTATE/.
 ```
 
 

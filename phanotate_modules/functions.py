@@ -140,12 +140,13 @@ def score_rbs(seq):
 def ave(a):
 	return Decimal(sum(a)/len(a))
 
-def get_orfs(dna):
-	start_codons = ['atg', 'gtg', 'ttg']
-	stop_codons = ['taa', 'tga', 'tag']
+def get_orfs(locus):
+	dna = locus.seq().lower()
+	#start_codons = ['atg', 'gtg', 'ttg']
+	#stop_codons = ['taa', 'tga', 'tag']
 	# This is the object that holds all the orfs
-	my_orfs = Orfs()
-	my_orfs.seq = dna
+	my_orfs = Orfs(locus)
+	my_orfs.seq = dna 
 	my_orfs.contig_length = len(dna)
 
 	# find nucleotide frequency, kmers, and create gc frame plot
@@ -182,11 +183,11 @@ def get_orfs(dna):
 	# The dicts that will hold the start and stop codons
 	stops = {1:0, 2:0, 3:0, -1:1, -2:2, -3:3}
 	starts = {1:[], 2:[], 3:[], -1:[], -2:[], -3:[]}
-	if dna[0:3] not in start_codons:
+	if dna[0:3] not in locus.start_codons:
 		starts[1].append(1)
-	if dna[1:4] not in start_codons:
+	if dna[1:4] not in locus.start_codons:
 		starts[2].append(2)
-	if dna[2:5] not in start_codons:
+	if dna[2:5] not in locus.start_codons:
 		starts[3].append(3)
 
 	# Reset iterator and find all the open reading frames
@@ -194,11 +195,11 @@ def get_orfs(dna):
 	for i in range(1, (len(dna)-1)):
 		codon = dna[i-1:i+2]
 		frame = next(states)
-		if codon in start_codons:
+		if codon in locus.start_codons:
 			starts[frame].append(i)
-		elif rev_comp(codon) in start_codons:
+		elif rev_comp(codon) in locus.start_codons:
 			starts[-frame].append(i+2)
-		elif codon in stop_codons:
+		elif codon in locus.stop_codons:
 			stop = i+2
 			for start in reversed(starts[frame]):
 				length = stop-start+1
@@ -211,7 +212,7 @@ def get_orfs(dna):
 	
 			starts[frame] = []
 			stops[frame] = stop
-		elif rev_comp(codon) in stop_codons:
+		elif rev_comp(codon) in locus.stop_codons:
 			stop = stops[-frame]
 			for start in starts[-frame]:
 				length = start-stop+1
@@ -237,7 +238,7 @@ def get_orfs(dna):
 				my_orfs.add_orf(start, stop-2, length, frame, seq, rbs, rbs_score)
 				training_rbs[rbs_score] += 1
 		start = my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3)
-		if rev_comp(dna[start-3:start]) not in start_codons:
+		if rev_comp(dna[start-3:start]) not in locus.start_codons:
 			starts[-frame].append(my_orfs.contig_length-((my_orfs.contig_length-(frame-1))%3))	
 		for start in starts[-frame]:
 			stop = stops[-frame]

@@ -5,15 +5,14 @@ from decimal import Decimal
 
 class Orfs(dict):
 	"""The class holding the orfs"""
-	def __init__(self, n=0):
-		self.n = n
+	def __init__(self, locus):
 		self.pstop = 0
-		self.min_orf_len = 90
+		self.min_orf_len = locus.min_orf_len
 		self.contig_length = 0
 		self.seq = ''
 		self.other_end = dict()
-		self.start_codons = ['atg', 'gtg', 'ttg']
-		self.stop_codons = ['taa', 'tga', 'tag']
+		self.start_codons = locus.start_codons # ['atg', 'gtg', 'ttg']
+		self.stop_codons = locus.stop_codons   # ['taa', 'tga', 'tag']
 
 	def add_orf(self, start, stop, length, frame, seq, rbs, rbs_score):
 		o = Orf(start, stop, length, frame, seq, rbs, rbs_score, self.start_codons, self.stop_codons)
@@ -87,9 +86,9 @@ class Orf:
 		self.gcfp_maxs = 1
 		self.start_codons = start_codons
 		self.stop_codons = stop_codons
-		self.start_weight = {'atg':Decimal('1.00'), 'cat':Decimal('1.00'),
-				     'gtg':Decimal('0.12'), 'cac':Decimal('0.12'),
-				     'ttg':Decimal('0.05'), 'caa':Decimal('0.05')}
+		#self.start_weight = {'atg':Decimal('1.00'), 'cat':Decimal('1.00'),
+		#		     'gtg':Decimal('0.12'), 'cac':Decimal('0.12'),
+		#		     'ttg':Decimal('0.05'), 'caa':Decimal('0.05')}
 		self.aa = dict()
 		self.med = dict()
 
@@ -122,8 +121,8 @@ class Orf:
 
 	def score(self):
 		s = 1/self.hold
-		if(self.start_codon() in self.start_weight):
-			s = s * self.start_weight[self.start_codon()]
+		if(self.start_codon() in self.start_codons):
+			s = s * self.start_codons[self.start_codon()]
 		s = s * Decimal(str(self.weight_rbs))
 		self.weight = -s
 		

@@ -5,6 +5,7 @@ import textwrap
 import argparse
 from argparse import RawTextHelpFormatter
 from math import log
+from decimal import Decimal
 
 from phanotate_modules.edges import Edge
 from phanotate_modules.nodes import Node
@@ -47,10 +48,22 @@ def get_args(File):
 	parser.add_argument('-o', '--outfile', action="store", default=sys.stdout, type=argparse.FileType('w'), help='where to write the output [stdout]')
 	#parser.add_argument('--outfmt', action="store", default="tabular", dest='outfmt', help='format of the output [tabular]', choices=['tabular','genbank','fasta'])
 	parser.add_argument('-f', '--format', help='Output the features in the specified format [tabular]', type=str, default='tabular', choices=File.formats[:7])
+	parser.add_argument('-s', '--start_codons', action="store", default="atg:0.85,gtg:0.10,ttg:0.05", dest='start_codons', help='comma separated list of start codons and frequency [atg:0.85,gtg:0.10,ttg:0.05]')
+	parser.add_argument('-e', '--stop_codons', action="store", default="tag,tga,taa", dest='stop_codons', help='comma separated list of stop codons [tag,tga,taa]')
+	parser.add_argument('-l', '--minlen', action="store", type=int, default=90, dest='min_orf_len', help='to store a variable')
 	parser.add_argument('-d', '--dump', action="store_true")
 	parser.add_argument('-V', '--version', action='version', version=__version__)
-
 	args = parser.parse_args()
+
+	start_codons = dict()
+	for codon,weight in map(lambda x: tuple(x.split(':')), args.start_codons.split(',')):
+		start_codons[codon.lower()] = Decimal(weight)
+	start_codons = {k: v / m for m in (max(start_codons.values()),) for k, v in start_codons.items()}
+	args.start_codons = start_codons
+	stop_codons = []
+	for codon in args.stop_codons.split(','):
+		stop_codons.append(codon.lower())
+	args.stop_codons = stop_codons
 
 	return args
 

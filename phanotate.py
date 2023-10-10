@@ -38,10 +38,11 @@ if not genbank.seq():
 #                               MAIN ROUTINE                                                       #
 #--------------------------------------------------------------------------------------------------#
 for locus in genbank:
-	locus.start_codons = ['atg','gtg','ttg']
-	locus.stop_codons  = ['taa','tga','tag']
 	#-------------------------------Find the ORFs----------------------------------------------#
-	orfs = functions.get_orfs(locus.seq().lower())
+	locus.start_codons = args.start_codons
+	locus.stop_codons = args.stop_codons
+	locus.min_orf_len = args.min_orf_len
+	orfs = functions.get_orfs(locus)
 
 
 	#-------------------------------Create the Graph-------------------------------------------#

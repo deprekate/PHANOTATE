@@ -369,7 +369,7 @@ def get_graph(my_orfs):
 				l_other = my_orfs.other_end[l]
 			else:
 				l_other = my_orfs.other_end['t'+str(l)]
-			if(0 < r-l < 300):
+			if(0 < r-l < 500):
 				if(l in my_orfs and my_orfs.other_end[l] in my_orfs[l]):
 					o1 = my_orfs.get_orf(my_orfs.other_end[l], l).pstop
 				elif(l in my_orfs):

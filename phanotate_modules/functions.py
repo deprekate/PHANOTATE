@@ -331,12 +331,12 @@ def get_graph(my_orfs):
 	last = 0
 	for base in bases:
 		if(base):
-			if(base-last > 300):
+			if(base-last > 500):
 				for right_node in G.iternodes():
 					for left_node in G.iternodes():
 						l = left_node.position
 						r = right_node.position
-						if(last+1 >= l > last-300 and base-1 <= r < base+300):
+						if(last+1 >= l > last-500 and base-1 <= r < base+500):
 							if(left_node.frame*right_node.frame > 0):
 								if(left_node.type == 'stop' and right_node.type =='start' and left_node.frame > 0):
 									score = score_gap(r-l-3, 'same', pgap)

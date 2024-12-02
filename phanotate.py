@@ -60,13 +60,14 @@ for locus in genbank:
 
 	if args.dump: sys.exit()
 
-	shortest_path = fz.get_path(source=source, target=target)
+	if len(graph) > 2:
+		shortest_path = fz.get_path(source=source, target=target)
+		shortest_path = shortest_path[1:]
+	else:
+		shortest_path = []
 
-
-	
 	#-------------------------------Write Output ----------------------------------------------#
 	#file_handling.write_output(locus.name(), args, shortest_path, graph, orfs)
-	shortest_path = shortest_path[1:]
 	for source, target in pairwise(shortest_path):
 		left,right = eval(source) , eval(target)
 		weight = graph.weight(Edge(left,right,0))
